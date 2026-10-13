@@ -1,0 +1,16 @@
+flask==3.1.0
+flask-cors==5.0.0
+mssql-python==1.15.0
+msal==1.39.0
+python-dotenv==1.0.1
+requests>=2.32
+# report agent dependencies
+# In production Foundry provides claude-agent-sdk; install locally for testing:
+#   pip install claude-agent-sdk
+claude-agent-sdk>=0.2.164
+fastapi
+uvicorn[standard]
+websockets
+pyyaml
+openpyxl
+mcp

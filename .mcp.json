@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "marine-dax": {
+      "command": "python",
+      "args": ["server/report_agent/scripts/dax_mcp.py"]
+    }
+  }
+}

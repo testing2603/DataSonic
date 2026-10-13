@@ -1,0 +1,10 @@
+{
+  "description": "Enables users to upload and ingest unstructured documents with schema validation and history tracking to ensure data reliability and accuracy.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

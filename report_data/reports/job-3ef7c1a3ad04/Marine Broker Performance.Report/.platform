@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.1.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "Marine Broker Performance"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "5a0a0dd8-a709-4091-a153-69a98b06cecb"
+  }
+}

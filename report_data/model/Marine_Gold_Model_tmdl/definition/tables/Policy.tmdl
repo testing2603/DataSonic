@@ -1,0 +1,194 @@
+/// One row per policy_number (G2), with an UNKNOWN member. gold.marine_dim_policy.
+table Policy
+
+	/// Number of policies, excluding the UNKNOWN member.
+	measure '# Policies' = CALCULATE(COUNTROWS('Policy'), 'Policy'[Policy Number] <> "UNKNOWN")
+		formatString: #,##0
+		displayFolder: Counts
+
+	/// KPI-POLICY-DURATION: average of policy_duration_days; day counts are never summed.
+	measure 'Average Policy Duration (Days)' = AVERAGE('Policy'[Policy Duration Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-POLICY-DURATION: minimum of policy_duration_days; day counts are never summed.
+	measure 'Minimum Policy Duration (Days)' = MIN('Policy'[Policy Duration Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-POLICY-DURATION: maximum of policy_duration_days; day counts are never summed.
+	measure 'Maximum Policy Duration (Days)' = MAX('Policy'[Policy Duration Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-WAR-RISK: policies where war_risk_included is TRUE; NULL is not counted.
+	measure '# Policies (War Risk Included)' = CALCULATE(COUNTROWS('Policy'), 'Policy'[War Risk Included] = TRUE())
+		formatString: #,##0
+		displayFolder: Indicators
+
+	column 'Policy Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: policy_sk
+
+	column 'Policy Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: policy_number
+
+	column 'War Risk Included'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: war_risk_included
+
+	column 'Policy Duration Days'
+		dataType: int64
+		isHidden
+		formatString: #,##0
+		summarizeBy: none
+		sourceColumn: policy_duration_days
+
+	column 'Gold Run ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_run_id
+
+	column 'Gold Timestamp'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_timestamp
+
+	column 'Policyholder Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: policyholder_name
+
+	column 'Insurance Period Start'
+		dataType: dateTime
+		formatString: yyyy/mm/dd
+		summarizeBy: none
+		sourceColumn: insurance_period_start
+
+	column 'Insurance Period End'
+		dataType: dateTime
+		formatString: yyyy/mm/dd
+		summarizeBy: none
+		sourceColumn: insurance_period_end
+
+	column 'Year of Account'
+		dataType: int64
+		formatString: #,##0
+		summarizeBy: none
+		sourceColumn: year_of_account
+
+	column 'Year of Account Basis'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: year_of_account_basis
+
+	column UMR
+		dataType: string
+		summarizeBy: none
+		sourceColumn: umr
+
+	column 'Policy Executive'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: executive
+
+	column 'Policy Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: policy_status
+
+	column 'Contract Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: contract_type
+
+	column Product
+		dataType: string
+		summarizeBy: none
+		sourceColumn: product
+
+	column 'Policy Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency
+
+	column 'Policy Issue Date'
+		dataType: dateTime
+		formatString: yyyy/mm/dd
+		summarizeBy: none
+		sourceColumn: policy_issue_date
+
+	column 'Sanctions Check Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: sanctions_check_status
+
+	column 'Cargo Commodity'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: cargo_commodity
+
+	column 'P&I Club'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: p_and_i_club
+
+	column 'Charter Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: charter_type
+
+	column 'Policy Vessel Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: vessel_type
+
+	column 'Vessel Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: vessel_name
+
+	column 'Vessel Class'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: vessel_class
+
+	column 'Flag State Country Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: flag_state_country_code
+
+	column 'Year Built'
+		dataType: int64
+		formatString: #,##0
+		summarizeBy: none
+		sourceColumn: year_built
+
+	column 'Owner Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: owner_name
+
+	column 'Policyholder Country Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: policyholder_country_code
+
+	partition Policy = entity
+		mode: directLake
+		source
+			entityName: marine_dim_policy
+			schemaName: gold
+			expressionSource: 'DirectLake - Marine_Gold_Model'
+

@@ -1,0 +1,295 @@
+[
+ {
+  "id": "Q01",
+  "question": "How many open claims do we have?",
+  "dax": "EVALUATE ROW(\"Open claims\", [# Claims (Open Claim)])",
+  "expected": [
+   {
+    "Open claims": 1345
+   }
+  ]
+ },
+ {
+  "id": "Q02",
+  "question": "What's the total incurred on Hull & Machinery claims with a loss in 2025?",
+  "dax": "EVALUATE SUMMARIZECOLUMNS('Claim Vessels'[Claim Currency], TREATAS({\"Hull & Machinery\"}, 'Policy'[Product]), TREATAS({2025}, 'Date'[Year]), \"Total Incurred\", [Total Incurred])",
+  "expected": [
+   {
+    "Claim Currency": "EUR",
+    "Total Incurred": 2962528766.44
+   },
+   {
+    "Claim Currency": "GBP",
+    "Total Incurred": 3214748478.33
+   },
+   {
+    "Claim Currency": "USD",
+    "Total Incurred": 5005488432.26
+   }
+  ]
+ },
+ {
+  "id": "Q03",
+  "question": "Top 5 brokers by number of claims",
+  "dax": "EVALUATE TOPN(5, SUMMARIZECOLUMNS('Broker'[Broker Name], \"Claims\", DISTINCTCOUNT('Claim Vessels'[Claim Number])), [Claims], DESC) ORDER BY [Claims] DESC",
+  "expected": [
+   {
+    "Broker Name": "Reynolds-Holland Brokers",
+    "Claims": 14
+   },
+   {
+    "Broker Name": "Martinez, Walters and Hudson Brokers",
+    "Claims": 12
+   },
+   {
+    "Broker Name": "Owens, Kane and Jenkins Brokers",
+    "Claims": 12
+   },
+   {
+    "Broker Name": "Jensen, Craig and Connolly Brokers",
+    "Claims": 11
+   },
+   {
+    "Broker Name": "Chan Inc Brokers",
+    "Claims": 11
+   },
+   {
+    "Broker Name": "Murphy, Richardson and Harding Brokers",
+    "Claims": 11
+   },
+   {
+    "Broker Name": "Palmer LLC Brokers",
+    "Claims": 11
+   }
+  ]
+ },
+ {
+  "id": "Q04",
+  "question": "Show OS reserve by product in USD",
+  "dax": "EVALUATE SUMMARIZECOLUMNS('Policy'[Product], TREATAS({\"USD\"}, 'Claim Vessels'[Claim Currency]), \"Total Outstanding\", [Total Outstanding]) ORDER BY [Total Outstanding] DESC",
+  "expected": [
+   {
+    "Product": "Hull & Machinery",
+    "Total Outstanding": 13519272313.86
+   },
+   {
+    "Product": "Loss of Hire",
+    "Total Outstanding": 4281000714.57
+   },
+   {
+    "Product": "War Risk",
+    "Total Outstanding": 4224574241.13
+   },
+   {
+    "Product": "Increased Value",
+    "Total Outstanding": 3976975683.86
+   },
+   {
+    "Product": "Protection & Indemnity",
+    "Total Outstanding": 3241110957.0
+   },
+   {
+    "Product": "Cargo",
+    "Total Outstanding": 1586759910.3
+   },
+   {
+    "Product": "Cargo War Risk",
+    "Total Outstanding": 991904674.76
+   },
+   {
+    "Product": "Cargo All Risk",
+    "Total Outstanding": 697034791.41
+   }
+  ]
+ },
+ {
+  "id": "Q05",
+  "question": "Payment ratio by claim type for GBP claims",
+  "dax": "EVALUATE SUMMARIZECOLUMNS('Claim'[Claim Type], TREATAS({\"GBP\"}, 'Claim Vessels'[Claim Currency]), \"Claim Payment Ratio\", [Claim Payment Ratio (%)]) ORDER BY [Claim Payment Ratio] DESC",
+  "expected": [
+   {
+    "Claim Type": "CONSTRUCTIVE_TOTAL_LOSS",
+    "Claim Payment Ratio": 0.5049379467840588
+   },
+   {
+    "Claim Type": "GENERAL_AVERAGE",
+    "Claim Payment Ratio": 0.48348944597053345
+   },
+   {
+    "Claim Type": "TOTAL_LOSS",
+    "Claim Payment Ratio": 0.45828429025846446
+   },
+   {
+    "Claim Type": "THIRD_PARTY_LIABILITY",
+    "Claim Payment Ratio": 0.4582315939580685
+   },
+   {
+    "Claim Type": "PARTIAL_LOSS",
+    "Claim Payment Ratio": 0.43597997676692746
+   },
+   {
+    "Claim Type": "SALVAGE",
+    "Claim Payment Ratio": 0.4335992230226202
+   }
+  ]
+ },
+ {
+  "id": "Q06",
+  "question": "Which 3 causes of loss take longest to be reported?",
+  "dax": "EVALUATE TOPN(3, SUMMARIZECOLUMNS('Claim'[Cause of Loss], \"Avg reporting lag (days)\", [Average Claim Reporting Lag (Days)]), [Avg reporting lag (days)], DESC) ORDER BY [Avg reporting lag (days)] DESC",
+  "expected": [
+   {
+    "Cause of Loss": "Grounding",
+    "Avg reporting lag (days)": 23.626617375231053
+   },
+   {
+    "Cause of Loss": "Machinery Breakdown",
+    "Avg reporting lag (days)": 23.231660231660232
+   },
+   {
+    "Cause of Loss": "Piracy",
+    "Avg reporting lag (days)": 23.225806451612904
+   }
+  ]
+ },
+ {
+  "id": "Q07",
+  "question": "How many claims were notified in Q3 2025?",
+  "dax": "EVALUATE ROW(\"Claims notified\", CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), USERELATIONSHIP('Claim Vessels'[Notification Date Key], 'Date'[Date Key]), 'Date'[Year] = 2025, 'Date'[Quarter] = 3))",
+  "expected": [
+   {
+    "Claims notified": 257
+   }
+  ]
+ },
+ {
+  "id": "Q08",
+  "question": "GWP by year of account for EUR policies",
+  "dax": "EVALUATE FILTER(SUMMARIZECOLUMNS('Policy'[Year of Account], TREATAS({\"EUR\"}, 'Policy Exposures'[Currency]), \"Total Premium\", [Total Premium]), NOT ISBLANK('Policy'[Year of Account])) ORDER BY 'Policy'[Year of Account]",
+  "expected": [
+   {
+    "Year of Account": 2019,
+    "Total Premium": 91513201.86
+   },
+   {
+    "Year of Account": 2020,
+    "Total Premium": 167688065.8
+   },
+   {
+    "Year of Account": 2021,
+    "Total Premium": 180862169.94
+   },
+   {
+    "Year of Account": 2022,
+    "Total Premium": 175341773.28
+   },
+   {
+    "Year of Account": 2023,
+    "Total Premium": 188631349.47
+   },
+   {
+    "Year of Account": 2024,
+    "Total Premium": 174296813.16
+   },
+   {
+    "Year of Account": 2025,
+    "Total Premium": 152639201.2
+   },
+   {
+    "Year of Account": 2026,
+    "Total Premium": 19250504.44
+   },
+   {
+    "Year of Account": 2027,
+    "Total Premium": 2739451.41
+   }
+  ]
+ },
+ {
+  "id": "Q09",
+  "question": "How many active policies include war risk?",
+  "dax": "EVALUATE ROW(\"Active war-risk policies\", CALCULATE([# Policies (War Risk Included)], 'Policy'[Policy Status] = \"Active\"))",
+  "expected": [
+   {
+    "Active war-risk policies": 192
+   }
+  ]
+ },
+ {
+  "id": "Q10",
+  "question": "Total incurred by broker type",
+  "dax": "EVALUATE SUMMARIZECOLUMNS('Broker'[Broker Type], 'Claim Vessels'[Claim Currency], \"Total Incurred\", [Total Incurred]) ORDER BY 'Broker'[Broker Type], 'Claim Vessels'[Claim Currency]",
+  "expected": [
+   {
+    "Broker Type": "Coverholder",
+    "Claim Currency": "EUR",
+    "Total Incurred": 9987349839.34
+   },
+   {
+    "Broker Type": "Coverholder",
+    "Claim Currency": "GBP",
+    "Total Incurred": 10787781416.94
+   },
+   {
+    "Broker Type": "Coverholder",
+    "Claim Currency": "USD",
+    "Total Incurred": 15157713233.17
+   },
+   {
+    "Broker Type": "Reinsurance",
+    "Claim Currency": "EUR",
+    "Total Incurred": 10846592533.01
+   },
+   {
+    "Broker Type": "Reinsurance",
+    "Claim Currency": "GBP",
+    "Total Incurred": 11226332222.28
+   },
+   {
+    "Broker Type": "Reinsurance",
+    "Claim Currency": "USD",
+    "Total Incurred": 15107674827.44
+   },
+   {
+    "Broker Type": "Retail",
+    "Claim Currency": "EUR",
+    "Total Incurred": 9353851117.11
+   },
+   {
+    "Broker Type": "Retail",
+    "Claim Currency": "GBP",
+    "Total Incurred": 10811344194.45
+   },
+   {
+    "Broker Type": "Retail",
+    "Claim Currency": "USD",
+    "Total Incurred": 14931584048.62
+   },
+   {
+    "Broker Type": "Wholesale",
+    "Claim Currency": "EUR",
+    "Total Incurred": 13196144915.5
+   },
+   {
+    "Broker Type": "Wholesale",
+    "Claim Currency": "GBP",
+    "Total Incurred": 12326018556.39
+   },
+   {
+    "Broker Type": "Wholesale",
+    "Claim Currency": "USD",
+    "Total Incurred": 14201534368.37
+   }
+  ]
+ },
+ {
+  "id": "Q11",
+  "question": "What's our loss ratio for 2024?",
+  "expected_behaviour": "Say loss ratio is not available (no earned premium). May offer Incurred ÷ Premium per currency, clearly labelled."
+ },
+ {
+  "id": "Q12",
+  "question": "Show claims by executive",
+  "expected_behaviour": "Ask which executive: policy, customer or claim executive."
+ }
+]

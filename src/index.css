@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-navy-950: #060d1a;
+  --color-navy-900: #0b1829;
+  --color-navy-800: #162236;
+  --color-navy-700: #1e2e45;
+  --color-navy-600: #253856;
+
+  /* Adrosonic brand cyan #00CCFF */
+  --color-brand-400: #00ccff;
+  --color-brand-500: #00b8e6;
+  --color-brand-600: #009fcc;
+}
+
+.page-bg {
+  background: #061426;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes dashFlow {
+  to { stroke-dashoffset: -48; }
+}
+@keyframes pulseRing {
+  0%   { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.animate-fade-in-up   { animation: fadeInUp   0.6s ease both; }
+.animate-fade-in-left { animation: fadeInLeft 0.6s ease both; }
+.animate-fade-in      { animation: fadeIn     0.5s ease both; }
+.animate-scale-in     { animation: scaleIn    0.5s ease both; }
+.animate-float        { animation: floatY     3s ease-in-out infinite; }
+.animate-dash-flow    { animation: dashFlow   1.4s linear infinite; }
+
+.ingestion-row-highlight {
+  animation: rowHighlight 1.8s ease-out;
+}
+@keyframes rowHighlight {
+  0%   { background-color: #1683FF30; }
+  100% { background-color: transparent; }
+}

@@ -1,0 +1,34 @@
+# Report plan for scripts/pbir_build.py. Approved spec: _brief/report-spec.md
+name: Premium by Broker
+model: {workspace: DataSonic 3, name: Marine_Gold_Model, id: dcd787e0-dd7d-47fd-bb3d-af3669727011}
+
+report_measures:
+  - {table: Policy Exposures, name: Policies, type: Integer, format: "#,##0", dax: "DISTINCTCOUNT('Policy Exposures'[Policy Number])"}
+
+pages:
+  - name: Premium by broker
+    title: Premium by broker (highest first)
+    subtitle: "Marine policies · amounts in the selected currency (no FX) · premium treated as GWP (unconfirmed)"
+    regions:
+      header: [1, 1, 10, 2]
+      filters: [10, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      chart: [1, 4, 13, 13]
+    visuals:
+      - {kind: slicer, id: currency, region: filters, slot: 1, of: 1, field: "Policy Exposures[Currency]", label: Currency, single: true, default: GBP}
+      - kind: card
+        id: kpis
+        region: kpis
+        accent: "Policy Exposures[Total Premium]"
+        alt: "Two headline KPIs: total premium and policy count, in the selected currency."
+        values:
+          - {field: "Policy Exposures[Total Premium]", label: Total Premium}
+          - {field: "Policy Exposures[Policies]", label: Policies, exact: true}
+      - kind: bar
+        id: premium_by_broker
+        region: chart
+        title: Premium by broker (highest first)
+        alt: "Bar chart of premium by broker, sorted largest first."
+        category: "Broker[Broker Name]"
+        values: [{field: "Policy Exposures[Total Premium]", label: Premium}]
+        sort: value_desc

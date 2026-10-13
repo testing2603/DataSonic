@@ -1,0 +1,15 @@
+{
+  "enabledMcpjsonServers": ["marine-dax"],
+  "permissions": {
+    "allow": [
+      "mcp__marine-dax__run_dax",
+      "Read(./**)",
+      "Write(./report_data/reports/**)",
+      "Edit(./report_data/reports/**)",
+      "Bash(python server/report_agent/scripts/pbir_build.py:*)",
+      "PowerShell(python server/report_agent/scripts/pbir_build.py:*)",
+      "Bash(powerbi-report-author:*)",
+      "PowerShell(powerbi-report-author:*)"
+    ]
+  }
+}

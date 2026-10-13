@@ -1,0 +1,41 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/reportExtension/1.0.0/schema.json",
+  "name": "extension",
+  "entities": [
+    {
+      "name": "Claim Vessels",
+      "measures": [
+        {
+          "name": "Claims",
+          "dataType": "Integer",
+          "expression": "DISTINCTCOUNT('Claim Vessels'[Claim Number])",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Brokers with Claims",
+          "dataType": "Integer",
+          "expression": "COUNTROWS(FILTER(VALUES('Broker'[Broker ID]), 'Broker'[Broker ID] <> \"UNKNOWN\" && CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number])) > 0))",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Avg Commission %",
+          "dataType": "Double",
+          "expression": "AVERAGEX(FILTER(VALUES('Broker'[Broker ID]), 'Broker'[Broker ID] <> \"UNKNOWN\" && CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number])) > 0), CALCULATE(MAX('Broker'[Commission %])))",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "Incurred (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Incurred], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Paid (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Paid], 1000000)",
+          "formatString": "#,##0.0"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/reportExtension/1.0.0/schema.json",
+  "name": "extension",
+  "entities": [
+    {
+      "name": "Claim Vessels",
+      "measures": [
+        {
+          "name": "Claims",
+          "dataType": "Integer",
+          "expression": "DISTINCTCOUNT('Claim Vessels'[Claim Number])",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Brokers with Claims",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Broker Key]), 'Broker'[Broker ID] <> \"UNKNOWN\")",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Reopened Claims",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[Is Reopened Claim] = TRUE())",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "GA Declared Claims",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[General Average Declared] = TRUE())",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Incurred (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Incurred], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "OS Reserve (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Outstanding], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Reporting Lag (days)",
+          "dataType": "Double",
+          "expression": "[Average Claim Reporting Lag (Days)]",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Payment Ratio DA",
+          "dataType": "Double",
+          "expression": "CALCULATE([Claim Payment Ratio (%)], 'Broker'[Delegated Authority] = TRUE())",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "Payment Ratio Non-DA",
+          "dataType": "Double",
+          "expression": "CALCULATE([Claim Payment Ratio (%)], 'Broker'[Delegated Authority] = FALSE())",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "Payment Ratio Low Commission",
+          "dataType": "Double",
+          "expression": "CALCULATE([Claim Payment Ratio (%)], 'Broker'[Commission %] < 0.035)",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "Payment Ratio Mid Commission",
+          "dataType": "Double",
+          "expression": "CALCULATE([Claim Payment Ratio (%)], 'Broker'[Commission %] >= 0.035, 'Broker'[Commission %] < 0.07)",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "Payment Ratio High Commission",
+          "dataType": "Double",
+          "expression": "CALCULATE([Claim Payment Ratio (%)], 'Broker'[Commission %] >= 0.07)",
+          "formatString": "0.0%"
+        },
+        {
+          "name": "FCA Number",
+          "dataType": "Text",
+          "expression": "IF([Claims] > 0, SELECTEDVALUE('Broker'[FCA Registration Number]))",
+          "formatString": ""
+        },
+        {
+          "name": "Onboarded",
+          "dataType": "Text",
+          "expression": "IF([Claims] > 0, FORMAT(SELECTEDVALUE('Broker'[Date of Onboarding]), \"dd mmm yyyy\"))",
+          "formatString": ""
+        },
+        {
+          "name": "Broker Type Label",
+          "dataType": "Text",
+          "expression": "IF([Claims] > 0, SELECTEDVALUE('Broker'[Broker Type]))",
+          "formatString": ""
+        },
+        {
+          "name": "Commission",
+          "dataType": "Double",
+          "expression": "IF([Claims] > 0, SELECTEDVALUE('Broker'[Commission %]))",
+          "formatString": "0.00%"
+        },
+        {
+          "name": "Delegated Authority Label",
+          "dataType": "Text",
+          "expression": "IF([Claims] > 0 && HASONEVALUE('Broker'[Delegated Authority]), IF(SELECTEDVALUE('Broker'[Delegated Authority]), \"Yes\", \"No\"))",
+          "formatString": ""
+        }
+      ]
+    }
+  ]
+}

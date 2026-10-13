@@ -1,0 +1,47 @@
+/// One row per customer_id (executive from claims - S4) (G2), with an UNKNOWN member. gold.marine_dim_customer.
+table Customer
+
+	/// Number of customers, excluding the UNKNOWN member.
+	measure '# Customers' = CALCULATE(COUNTROWS('Customer'), 'Customer'[Customer ID] <> "UNKNOWN")
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Customer Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: customer_sk
+
+	column 'Customer ID'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: customer_id
+
+	column 'Gold Run ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_run_id
+
+	column 'Gold Timestamp'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_timestamp
+
+	column 'Customer Executive'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: executive
+
+	partition Customer = entity
+		mode: directLake
+		source
+			entityName: marine_dim_customer
+			schemaName: gold
+			expressionSource: 'DirectLake - Marine_Gold_Model'
+

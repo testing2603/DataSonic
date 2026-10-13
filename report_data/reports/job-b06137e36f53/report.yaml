@@ -1,0 +1,144 @@
+# Report plan for scripts/pbir_build.py. Approved spec: _brief/report-spec.md
+name: Marine Broker and Vessel Risk Review
+model: {workspace: DataSonic 3, name: Marine_Gold_Model, id: dcd787e0-dd7d-47fd-bb3d-af3669727011}
+
+report_measures:
+  - {table: Claim Vessels, name: Claims, type: Integer, format: "#,##0", dax: "DISTINCTCOUNT('Claim Vessels'[Claim Number])"}
+  - {table: Claim Vessels, name: Outstanding (m), format: "#,##0.0", dax: "DIVIDE([Total Outstanding], 1000000)"}
+  - {table: Claim Vessels, name: Reopened Claims, type: Integer, format: "#,##0", dax: "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[Is Reopened Claim] = TRUE())"}
+  - {table: Claim Vessels, name: GA Declared, type: Integer, format: "#,##0", dax: "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[General Average Declared] = TRUE())"}
+  - {table: Broker, name: FCA Number, type: String, dax: "MAX(Broker[FCA Registration Number])"}
+  - {table: Broker, name: Commission, format: "0.0%", dax: "MAX(Broker[Commission %])"}
+  - table: Broker
+    name: Onboarded
+    type: String
+    dax: 'FORMAT(MAX(Broker[Date of Onboarding]), "YYYY-MM-DD")'
+  - table: Broker
+    name: DA
+    type: String
+    dax: 'IF(MAX(Broker[Delegated Authority]) = TRUE(), "Yes", "No")'
+
+pages:
+  - name: Broker performance
+    title: Wholesale brokers carry the highest outstanding reserve
+    subtitle: "Marine broker review \xB7 amounts in the selected currency (no FX) \xB7 loss years up to 2026"
+    filters:
+      - {field: "Date[Year]", op: "<=", value: 2026}
+    regions:
+      header: [1, 1, 9, 2]
+      filters: [9, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      by_type: [1, 4, 7, 9]
+      by_da: [7, 4, 13, 9]
+      broker_detail: [1, 9, 13, 13]
+    visuals:
+      - {kind: slicer, id: currency, region: filters, slot: 1, of: 3, field: "Claim Vessels[Claim Currency]", label: Currency, single: true, default: GBP}
+      - {kind: slicer, id: broker_type, region: filters, slot: 2, of: 3, field: "Broker[Broker Type]", label: Broker type}
+      - {kind: slicer, id: product, region: filters, slot: 3, of: 3, field: "Policy[Product]", label: Product}
+      - kind: card
+        id: kpis
+        region: kpis
+        accent: "Claim Vessels[Total Outstanding]"
+        alt: "Four headline KPIs: claims count, total incurred, total outstanding and payment ratio for the selected currency."
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims, exact: true}
+          - {field: "Claim Vessels[Total Incurred]", label: Incurred}
+          - {field: "Claim Vessels[Total Outstanding]", label: Outstanding}
+          - {field: "Claim Vessels[Claim Payment Ratio (%)]", label: Payment ratio}
+      - kind: clustered_bar
+        id: by_type
+        region: by_type
+        title: Incurred and outstanding by broker type
+        alt: "Clustered bar comparing incurred and outstanding across four broker types; Wholesale leads in outstanding."
+        category: "Broker[Broker Type]"
+        values:
+          - {field: "Claim Vessels[Total Incurred]", label: Incurred}
+          - {field: "Claim Vessels[Total Outstanding]", label: Outstanding}
+        sort: value_desc
+      - kind: clustered_bar
+        id: by_da
+        region: by_da
+        title: Incurred and outstanding by delegated authority
+        alt: "Clustered bar comparing incurred and outstanding for brokers with and without delegated authority."
+        category: "Broker[Delegated Authority]"
+        values:
+          - {field: "Claim Vessels[Total Incurred]", label: Incurred}
+          - {field: "Claim Vessels[Total Outstanding]", label: Outstanding}
+        sort: value_desc
+      - kind: matrix
+        id: broker_detail
+        region: broker_detail
+        title: Top brokers by outstanding (highest first)
+        alt: "Broker detail table showing name, FCA number, onboarding date, commission, delegated authority, claims count, outstanding in millions and payment ratio."
+        rows:
+          - {field: "Broker[Broker Name]", label: Broker}
+        sort_by: "Claim Vessels[Outstanding (m)]"
+        values:
+          - {field: "Broker[FCA Number]", label: FCA number}
+          - {field: "Broker[Onboarded]", label: Onboarded}
+          - {field: "Broker[Commission]", label: Commission %}
+          - {field: "Broker[DA]", label: DA}
+          - {field: "Claim Vessels[Claims]", label: Claims}
+          - {field: "Claim Vessels[Outstanding (m)]", label: Outstanding (m)}
+          - {field: "Claim Vessels[Claim Payment Ratio (%)]", label: Payment ratio}
+
+  - name: Vessel risk & settlements
+    title: Container ships and tankers drive half the incurred claims book
+    subtitle: "Marine vessel risk & settlements \xB7 claim amounts use the claim currency slicer, settlements use the settlement currency slicer (no FX) \xB7 loss years up to 2026"
+    filters:
+      - {field: "Date[Year]", op: "<=", value: 2026}
+    regions:
+      header: [1, 1, 9, 2]
+      filters: [9, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      by_vessel: [1, 4, 7, 9]
+      by_flag: [7, 4, 13, 9]
+      settlements_qtr: [1, 9, 7, 13]
+      lag_by_vessel: [7, 9, 13, 13]
+    visuals:
+      - {kind: slicer, id: claim_currency, region: filters, slot: 1, of: 2, field: "Claim Vessels[Claim Currency]", label: Claim currency, single: true, default: GBP}
+      - {kind: slicer, id: settlement_currency, region: filters, slot: 2, of: 2, field: "Claim Settlement Transactions[Settlement Currency]", label: Settlement currency, single: true, default: GBP}
+      - kind: card
+        id: kpis
+        region: kpis
+        alt: "Four KPIs: claims count, reopened claims, General Average declared and average reporting lag in days."
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims, exact: true}
+          - {field: "Claim Vessels[Reopened Claims]", label: Reopened claims, exact: true}
+          - {field: "Claim Vessels[GA Declared]", label: GA declared, exact: true}
+          - {field: "Claim Vessels[Average Claim Reporting Lag (Days)]", label: Avg reporting lag (days), exact: true}
+      - kind: bar
+        id: by_vessel
+        region: by_vessel
+        title: Incurred by vessel type
+        alt: "Bar chart of incurred by vessel type, largest first; Container Ship leads at GBP 13 billion."
+        category: "Vessel[Vessel Type]"
+        values: [{field: "Claim Vessels[Total Incurred]", label: Incurred}]
+        sort: value_desc
+      - kind: bar
+        id: by_flag
+        region: by_flag
+        title: Incurred by flag state
+        alt: "Bar chart of incurred by flag state country code, largest first; Marshall Islands leads."
+        category: "Policy[Flag State Country Code]"
+        values: [{field: "Claim Vessels[Total Incurred]", label: Incurred}]
+        sort: value_desc
+      - kind: column
+        id: settlements_qtr
+        region: settlements_qtr
+        title: Settlements by year and quarter
+        alt: "Stacked column chart of settlement amounts by year with quarters as segments; settlements grew significantly from 2021 and peaked in 2024."
+        category: "Date[Year]"
+        category_label: Transaction year
+        series: "Date[Quarter]"
+        series_label: Quarter
+        values: [{field: "Claim Settlement Transactions[Total Settlements]", label: Settlements}]
+        sort: category_asc
+      - kind: bar
+        id: lag_by_vessel
+        region: lag_by_vessel
+        title: Average reporting lag by vessel type (days)
+        alt: "Bar chart of average claim reporting lag in days by vessel type."
+        category: "Vessel[Vessel Type]"
+        values: [{field: "Claim Vessels[Average Claim Reporting Lag (Days)]", label: Avg lag (days)}]
+        sort: value_desc

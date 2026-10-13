@@ -1,0 +1,78 @@
+# Report plan for scripts/pbir_build.py. Approved spec: _brief/report-spec.md
+name: Marine Broker Performance
+model: {workspace: DataSonic 3, name: Marine_Gold_Model, id: dcd787e0-dd7d-47fd-bb3d-af3669727011}
+
+report_measures:
+  - {table: Claim Vessels, name: Claims, type: Integer, format: "#,##0", dax: "DISTINCTCOUNT('Claim Vessels'[Claim Number])"}
+  - {table: Claim Vessels, name: Brokers with Claims, type: Integer, format: "#,##0",
+     dax: "CALCULATE(DISTINCTCOUNT('Broker'[Broker ID]), 'Claim Vessels', 'Broker'[Broker ID] <> \"UNKNOWN\")"}
+  - {table: Claim Vessels, name: Avg Commission %, format: "0.0%", dax: "CALCULATE(AVERAGE('Broker'[Commission %]), 'Claim Vessels')"}
+  - {table: Claim Vessels, name: Incurred (m), format: "#,##0.0", dax: "DIVIDE([Total Incurred], 1000000)"}
+  - {table: Claim Vessels, name: Paid (m), format: "#,##0.0", dax: "DIVIDE([Total Paid], 1000000)"}
+
+pages:
+  - name: Broker performance
+    title: Payment ratio barely differs by broker type (45.9%-47.7%); Coverholders log the most claims
+    subtitle: "Marine claims by placing broker · amounts in the selected currency (no FX) · loss years up to 2026 (future-dated losses excluded) · commission % = broker's TOBA rate"
+    filters:
+      - {field: "Date[Year]", op: "<=", value: 2026}
+    regions:
+      header: [1, 1, 9, 2]
+      filters: [9, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      types_chart: [1, 4, 6, 8]
+      types_table: [6, 4, 13, 8]
+      brokers: [1, 8, 13, 13]
+    visuals:
+      - {kind: slicer, id: currency, region: filters, slot: 1, of: 3, field: "Claim Vessels[Claim Currency]", label: Currency, single: true, default: GBP}
+      - {kind: slicer, id: year, region: filters, slot: 2, of: 3, field: "Date[Year]", label: Loss year}
+      - {kind: slicer, id: brokertype, region: filters, slot: 3, of: 3, field: "Broker[Broker Type]", label: Broker type}
+      - kind: card
+        id: kpis
+        region: kpis
+        accent: "Claim Vessels[Claim Payment Ratio (%)]"
+        alt: "Six headline broker KPIs: brokers with claims, claims, incurred, paid, payment ratio and average commission %, in the selected currency."
+        values:
+          - {field: "Claim Vessels[Brokers with Claims]", label: Brokers with claims, exact: true}
+          - {field: "Claim Vessels[Claims]", label: Claims, exact: true}
+          - {field: "Claim Vessels[Total Incurred]", label: Incurred}
+          - {field: "Claim Vessels[Total Paid]", label: Paid}
+          - {field: "Claim Vessels[Claim Payment Ratio (%)]", label: Payment ratio}
+          - {field: "Claim Vessels[Avg Commission %]", label: Avg commission %}
+      - kind: column
+        id: types_chart
+        region: types_chart
+        title: Claims by broker type (highest first)
+        alt: "Column chart of claims by broker type, largest first; Coverholder brokers have the most claims (450 in GBP)."
+        category: "Broker[Broker Type]"
+        category_label: Broker type
+        sort: value_desc
+        values: [{field: "Claim Vessels[Claims]", label: Claims}]
+      - kind: matrix
+        id: types_table
+        region: types_table
+        title: Broker types compared (highest incurred first)
+        alt: "Table comparing broker types on claims, incurred and paid in millions, payment ratio and average commission %."
+        rows: [{field: "Broker[Broker Type]", label: Broker type}]
+        sort_by: "Claim Vessels[Incurred (m)]"
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims}
+          - {field: "Claim Vessels[Incurred (m)]", label: Incurred (m)}
+          - {field: "Claim Vessels[Paid (m)]", label: Paid (m)}
+          - {field: "Claim Vessels[Claim Payment Ratio (%)]", label: Payment ratio}
+          - {field: "Claim Vessels[Avg Commission %]", label: Commission %}
+      - kind: matrix
+        id: brokers
+        region: brokers
+        title: Brokers by incurred (highest first)
+        alt: "Table of brokers sorted by incurred, with broker type, claims, incurred and paid in millions, payment ratio and commission %; Daniels-Morgan Brokers is largest."
+        rows:
+          - {field: "Broker[Broker Name]", label: Broker}
+          - {field: "Broker[Broker Type]", label: Type}
+        sort_by: "Claim Vessels[Incurred (m)]"
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims}
+          - {field: "Claim Vessels[Incurred (m)]", label: Incurred (m)}
+          - {field: "Claim Vessels[Paid (m)]", label: Paid (m)}
+          - {field: "Claim Vessels[Claim Payment Ratio (%)]", label: Payment ratio}
+          - {field: "Claim Vessels[Avg Commission %]", label: Commission %}
