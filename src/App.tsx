@@ -49,7 +49,6 @@ const nav: NavItem[] = [
     ],
   },
   { kind: 'item', id: 'data-engineering', label: 'Data Engineering', icon: EngineeringIcon },
-  { kind: 'item', id: 'data-reliability', label: 'Data Reliability Agent', icon: ReliabilityIcon },
   { kind: 'item', id: 'reporting', label: 'Reporting & Analytics', icon: ReportingIcon },
   { kind: 'item', id: 'ai-chat', label: 'AI Data Assistant', icon: AIChatIcon },
 ]
@@ -340,7 +339,6 @@ function SidebarBottom({ collapsed }: { collapsed: boolean }) {
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: '#1683FF' }}>AM</div>
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-medium truncate" style={{ color: '#F4F8FC' }}>Avery Morgan</div>
-            <div className="text-[10px] truncate" style={{ color: '#8FA7BF' }}>Data Steward</div>
           </div>
         </div>
       )}

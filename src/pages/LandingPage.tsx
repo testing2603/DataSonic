@@ -61,21 +61,6 @@ const pipeline: {
     detail: 'Structured pipelines ensure clean, validated, and analytics-ready datasets across all LOBs.',
   },
   {
-    id: 'data-reliability',
-    label: 'Governance & Reliability',
-    sublabel: 'Quality Assurance',
-    short: 'Reliability',
-    color: '#FF647C',
-    bg: '#3D1020',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8" /><path d="M11 7v4l3 2" />
-      </svg>
-    ),
-    desc: 'Monitor data quality rules and track pipeline reliability across all datasets.',
-    detail: 'Automated alerting, SLA tracking, and trend analysis keep data trustworthy end-to-end.',
-  },
-  {
     id: 'reporting',
     label: 'Insights & Reporting',
     sublabel: 'Analytics',
@@ -115,7 +100,7 @@ const pipeline: {
 
 // ── Hex flow helpers ──────────────────
 const CX = 300, CY = 300, R = 205
-const HEX_ANGLES = [-90, -30, 30, 90, 150, 210]
+const HEX_ANGLES = [-90, -18, 54, 126, 198]
 function hexPt(angleDeg: number) {
   const rad = (angleDeg * Math.PI) / 180
   return { x: CX + R * Math.cos(rad), y: CY + R * Math.sin(rad) }
@@ -144,7 +129,7 @@ function HexFlow({ pipeline, tooltip, setTooltip, onNavigate }: {
             stroke={pipeline[i].color} strokeWidth="0.7" strokeDasharray="3 6" opacity="0.18" />
         })}
         {HEX_ANGLES.map((ang, i) => {
-          const p1 = hexPt(ang), p2 = hexPt(HEX_ANGLES[(i + 1) % 6])
+          const p1 = hexPt(ang), p2 = hexPt(HEX_ANGLES[(i + 1) % HEX_ANGLES.length])
           return <line key={`edge-${i}`} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
             stroke={pipeline[i].color} strokeWidth="1.3" strokeDasharray="6 8" opacity="0.4"
             style={{ animation: `dashFlow ${1.4 + i * 0.18}s linear infinite` }} />
@@ -260,7 +245,7 @@ export default function LandingPage({ onNavigate }: Props) {
           <p className="text-[15px] max-w-2xl mx-auto mb-8" style={{ color: '#8FA7BF', lineHeight: '1.85', letterSpacing: '0.01em' }}>
             An end-to-end data ecosystem that transforms raw, fragmented data into{' '}
             <span style={{ color: '#2DA8FF', fontWeight: 500 }}>trusted, governed, and analytics-ready insights</span>
-            {' '}— unifying ingestion, schema governance, MDM, data engineering, reliability, AI, and reporting in one intelligent platform.
+            {' '}— unifying ingestion, schema governance, MDM, data engineering, AI, and reporting in one intelligent platform.
           </p>
           <div className="flex items-center justify-center gap-3 mb-10">
             <button onClick={() => onNavigate('ingestion')}
@@ -275,19 +260,6 @@ export default function LandingPage({ onNavigate }: Props) {
               onMouseEnter={e => (e.currentTarget.style.color = '#F4F8FC')}
               onMouseLeave={e => (e.currentTarget.style.color = '#8FA7BF')}
             >Explore Platform</button>
-          </div>
-          <div className="grid grid-cols-4 gap-3 max-w-2xl mx-auto">
-            {[
-              { v: '6', label: 'Modules', c: '#2DA8FF' },
-              { v: '4', label: 'Lines of Business', c: '#18C7A0' },
-              { v: '98.7%', label: 'Success Rate', c: '#A875FF' },
-              { v: 'AI-First', label: 'Architecture', c: '#16C7D9' },
-            ].map(m => (
-              <div key={m.label} className="rounded-xl p-3 border text-center" style={{ background: '#0A1B31', borderColor: '#1A3050' }}>
-                <div className="text-[20px] font-extrabold mb-0.5" style={{ color: m.c }}>{m.v}</div>
-                <div className="text-[10px] font-medium" style={{ color: '#8FA7BF' }}>{m.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </section>
