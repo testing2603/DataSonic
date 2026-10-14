@@ -13,6 +13,10 @@ interface Props {
 export default function StewardshipPage({ tab, onTabChange, onNotify }: Props) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* Header */}
+      <div className="px-6 pt-5 pb-3 flex-shrink-0" style={{ background: '#081A2E' }}>
+        <h1 className="text-xl font-bold" style={{ color: '#F4F8FC' }}>Stewardship Review</h1>
+      </div>
       {/* Tab bar */}
       <div className="px-6 flex-shrink-0 flex items-end gap-0" style={{ background: '#081A2E', borderBottom: '1px solid #18334F' }}>
         {([

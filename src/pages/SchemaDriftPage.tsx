@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppNotification } from '../App'
 import { makeNotif } from '../App'
-
+ 
 // ---- Shape of a row as it comes back from GET /api/approval-logs -------
 // Mirrors the columns of drift_ui_review in the Bronze_Data Lakehouse
 // (see server/components/schema_drift/routes.py).
@@ -31,29 +31,29 @@ interface ApprovalLogRow {
   STEWARD_COMMENT: string | null
   REVIEW_TIMESTAMP: string | null
 }
-
+ 
 type Status = 'Pending Review' | 'Approved' | 'Rejected' | 'Auto Approved'
-
+ 
 // DECISION values in the Lakehouse schema_registry table.
 type Decision = 'ACCEPT' | 'REJECT'
-
+ 
 const DECISION_STATUS: Record<Decision, Status> = {
   ACCEPT: 'Approved',
   REJECT: 'Rejected',
 }
-
+ 
 type Action = 'REJECT_DRIFT' | 'ACCEPT_DRIFT'
-
+ 
 const ACTION_DECISION: Record<Action, Decision> = {
   REJECT_DRIFT: 'REJECT',
   ACCEPT_DRIFT: 'ACCEPT',
 }
-
+ 
 const ACTION_MESSAGES: Record<Action, (id: string, summary: string) => string> = {
   REJECT_DRIFT: (id, s) => `Schema change ${id} rejected — "${s}"`,
   ACCEPT_DRIFT: (id, s) => `Schema change ${id} accepted — "${s}"`,
 }
-
+ 
 // Shape of a row from GET /api/drift-decisions (latest decision per drift).
 interface FeedbackRow {
   DRIFT_ID: string
@@ -61,7 +61,7 @@ interface FeedbackRow {
   SYNC_STATUS: string | null
   SYNCED_TIME: string | null
 }
-
+ 
 // drift_ui_review now records each decision's STATUS itself, so Fabric is the
 // source of truth. A local decision only overrides a row's Fabric status
 // while Fabric can't show it yet: not written yet (queued / writing / failed
@@ -70,13 +70,13 @@ interface FeedbackRow {
 // that comes back as PENDING_REVIEW (e.g. re-inserted with the same id)
 // shows as pending again.
 const SQL_ENDPOINT_LAG_MS = 5 * 60 * 1000
-
+ 
 function overridesFabric(f: FeedbackRow, now = Date.now()): boolean {
   if (f.SYNC_STATUS !== 'SYNCED') return true
   const synced = f.SYNCED_TIME ? Date.parse(f.SYNCED_TIME) : NaN
   return !Number.isNaN(synced) && now - synced < SQL_ENDPOINT_LAG_MS
 }
-
+ 
 // GET /api/decision-counts: counts from the Lakehouse schema_registry.
 interface DecisionCounts {
   autoApproved: number
@@ -84,7 +84,7 @@ interface DecisionCounts {
   rejected: number
   total: number
 }
-
+ 
 // GET /api/drift-sync: where decisions are in the write-back to the
 // lakehouse (a Fabric notebook run started by the backend).
 interface SyncSummary {
@@ -97,14 +97,14 @@ interface SyncSummary {
   localOnly: number
   lastError: string | null
 }
-
+ 
 const statusStyle: Record<Status, string> = {
   'Pending Review': 'bg-[#493715] text-[#F5A623] border border-[#F5A623]/30',
   'Approved': 'bg-[#103E3A] text-[#18C7A0] border border-[#18C7A0]/30',
   'Rejected': 'bg-[#492431] text-[#FF647C] border border-[#FF647C]/30',
   'Auto Approved': 'bg-[#30204E] text-[#A875FF] border border-[#A875FF]/30',
 }
-
+ 
 const STATUS_LABELS: Record<string, Status> = {
   PENDING: 'Pending Review',
   PENDING_REVIEW: 'Pending Review',
@@ -113,7 +113,7 @@ const STATUS_LABELS: Record<string, Status> = {
   REJECTED: 'Rejected',
   AUTO_APPROVED: 'Auto Approved',
 }
-
+ 
 const DRIFT_TYPE_LABELS: Record<string, string> = {
   NEW_COLUMN: 'Column Added',
   COLUMN_RENAMED: 'Column Renamed',
@@ -122,18 +122,18 @@ const DRIFT_TYPE_LABELS: Record<string, string> = {
   COLUMN_DELETED: 'Column Deleted',
   DELETED_COLUMN: 'Column Deleted',
 }
-
+ 
 function humanizeDriftType(raw: string): string {
   return (
     DRIFT_TYPE_LABELS[raw] ??
     raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   )
 }
-
+ 
 function humanizeStatus(raw: string): Status {
   return STATUS_LABELS[raw?.toUpperCase()] ?? 'Pending Review'
 }
-
+ 
 function buildSummary(row: ApprovalLogRow): string {
   switch (row.DRIFT_TYPE) {
     case 'NEW_COLUMN':
@@ -150,7 +150,7 @@ function buildSummary(row: ApprovalLogRow): string {
       return `${humanizeDriftType(row.DRIFT_TYPE)}: ${row.NEW_FIELD_NAME ?? row.OLD_FIELD_NAME ?? ''}`
   }
 }
-
+ 
 function formatDetected(raw: string | null): string {
   if (!raw) return '—'
   const d = new Date(raw)
@@ -163,7 +163,7 @@ function formatDetected(raw: string | null): string {
     minute: '2-digit',
   })
 }
-
+ 
 // ---- Display-ready shape the rest of this component works with --------
 interface DriftLog {
   id: string
@@ -187,7 +187,7 @@ interface DriftLog {
   confidence: number | null // 0–1, or null when the row hasn't been scored yet
   detected: string
 }
-
+ 
 function toDriftLog(row: ApprovalLogRow): DriftLog {
   return {
     id: row.DRIFT_ID,
@@ -208,12 +208,12 @@ function toDriftLog(row: ApprovalLogRow): DriftLog {
     detected: formatDetected(row.CREATED_TIME),
   }
 }
-
+ 
 // Drift ids are UUIDs; the table shows the first 8 characters.
 const shortId = (id: string) => id.slice(0, 8)
-
+ 
 const PAGE_SIZE = 10
-
+ 
 function paginationRange(current: number, total: number): (number | '...')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
   const pages: (number | '...')[] = [1]
@@ -225,7 +225,7 @@ function paginationRange(current: number, total: number): (number | '...')[] {
   pages.push(total)
   return pages
 }
-
+ 
 const TAG_TYPE_OPTIONS = ['Mandatory', 'Optional', 'Conditional', 'Derived']
 // Tag types whose tag field is derived from other columns. For the others
 // (Mandatory, Optional) the Tag Field doesn't apply and is disabled.
@@ -235,20 +235,41 @@ const NO_TAG_FIELD = ''
 // Columns offered for Conditional/Derived tags. Placeholder list: these will
 // come from the incoming dataset's structure once that is available.
 const TAG_FIELD_OPTIONS = [
-  '(Re)Insurer Unique Identifier',
-  'Policy Reference',
-  'Claim Number',
-  'Inception Date',
-  'Premium Amount',
-  'Broker Name',
+  'Contract Reference',
+  'Contract Type',
+  'Policyholder',
+  'Additional Insured',
+  'Placing Broker',
+  'Other Intermediary',
+  'Premium',
+  'Limit',
+  'Deductible or Excess',
+  '(Re)Insurer',
+  'Security Details',
+  'Period',
+  'Payment Info',
+  'Commissions',
+  'Brokerage',
+  'Other Deductions',
+  'Risk Classification',
+  'Splits',
+  'Insurable Interest',
+  'Exposure Measure',
+  'Other Interested Party',
+  'Tax',
+  'Endorsement',
+  'Beneficiary',
+  'Law and Jurisdiction',
+  'Subjectives',
+  'Claims',
 ]
-
+ 
 export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotification) => void }) {
   const [driftLogs, setDriftLogs] = useState<DriftLog[]>([])
   const [decisionCounts, setDecisionCounts] = useState<DecisionCounts>({ autoApproved: 0, manuallyApproved: 0, rejected: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
+ 
   const [selected, setSelected] = useState<DriftLog | null>(null)
   const [page, setPage] = useState(1)
   const [justification, setJustification] = useState('')
@@ -260,18 +281,18 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
   const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All')
   const tableRef = useRef<HTMLDivElement>(null)
-
+ 
   function goToPage(p: number | ((prev: number) => number)) {
     setPage(p)
     tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
-
+ 
   function changeTagType(next: string) {
     setTagType(next)
     // Mandatory/Optional have no tag field; clear any earlier choice.
     if (!TAG_TYPES_WITH_FIELD.has(next)) setTagField(NO_TAG_FIELD)
   }
-
+ 
   async function refreshSync() {
     try {
       const res = await fetch('/api/drift-sync')
@@ -280,12 +301,12 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
       // backend unreachable; the page's own error banner covers that
     }
   }
-
-
+ 
+ 
   useEffect(() => {
     refreshSync()
   }, [])
-
+ 
   // Approved / Rejected / Auto Approved are loaded once with the page (from
   // /api/decision-counts); after that each saved decision bumps its card
   // directly, so the cards never wait on Fabric's SQL endpoint to catch up.
@@ -296,7 +317,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
         : { ...c, manuallyApproved: c.manuallyApproved + 1, total: c.total + 1 },
     )
   }
-
+ 
   // Poll only while decisions are waiting for or inside a notebook run.
   const syncActive = !!sync && sync.queued + sync.syncing > 0
   useEffect(() => {
@@ -304,10 +325,10 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
     const timer = setInterval(refreshSync, 5000)
     return () => clearInterval(timer)
   }, [syncActive])
-
+ 
   useEffect(() => {
     let cancelled = false
-
+ 
     async function load() {
       setLoading(true)
       setError(null)
@@ -317,10 +338,10 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
           fetch('/api/decision-counts'),
           fetch('/api/drift-decisions'),
         ])
-
+ 
         if (!logsRes.ok) throw new Error(`approval-logs: ${logsRes.status}`)
         if (!countRes.ok) throw new Error(`decision-counts: ${countRes.status}`)
-
+ 
         const logsJson: ApprovalLogRow[] = await logsRes.json()
         const countsJson: DecisionCounts = await countRes.json()
         // Saved decisions are secondary: if they can't be loaded, still show
@@ -331,7 +352,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
         } else {
           console.warn(`drift-decisions: ${decisionsRes.status}; showing drift logs without saved decisions`)
         }
-
+ 
         if (cancelled) return
         setDriftLogs(logsJson.map(toDriftLog))
         setDecisionCounts(countsJson)
@@ -348,15 +369,15 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
         if (!cancelled) setLoading(false)
       }
     }
-
+ 
     load()
     return () => {
       cancelled = true
     }
   }, [])
-
+ 
   useEffect(() => { setPage(1) }, [statusFilter])
-
+ 
   const effectiveStatus = (r: DriftLog): Status => decisions[r.id] ?? r.status
   const filteredLogs = statusFilter === 'All'
     ? [...driftLogs]
@@ -365,7 +386,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / PAGE_SIZE))
   const displayPage = Math.min(page, totalPages)
   const pageRows = filteredLogs.slice((displayPage - 1) * PAGE_SIZE, displayPage * PAGE_SIZE)
-
+ 
   // Pending comes from drift_ui_review (rows not yet decided); approved,
   // rejected and auto approved from /api/decision-counts plus this session.
   const counts = {
@@ -374,7 +395,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
     rejected: decisionCounts.rejected,
     auto: decisionCounts.autoApproved,
   }
-
+ 
   // Called only when the steward clicks one of the three action buttons.
   // Sends their choice to the backend, which records it locally and writes
   // it to the lakehouse through the Fabric notebook. The row's status
@@ -427,7 +448,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
       setSaving(false)
     }
   }
-
+ 
   function openDetail(row: DriftLog) {
     setSelected(row)
     setJustification('')
@@ -435,8 +456,8 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
     setTagType(TAG_TYPE_OPTIONS[0])
     setTagField(NO_TAG_FIELD)
   }
-
-
+ 
+ 
   return (
     <div className="p-6 min-h-full">
       {/* Header */}
@@ -446,15 +467,15 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
           <p className="text-[12px] mt-0.5" style={{ color: '#8FA7BF' }}>Review and take action on individual schema changes detected in incoming data.</p>
         </div>
       </div>
-
+ 
       {error && (
         <div className="mb-5 rounded-lg px-4 py-3 text-[12px]" style={{ background: '#492431', border: '1px solid rgba(255,100,124,0.3)', color: '#FF647C' }}>
           {error}
         </div>
       )}
-
+ 
       {sync && <SyncBanner sync={sync} />}
-
+ 
       {/* Stat cards */}
       <div className="grid grid-cols-4 gap-3 mb-5">
         <StatCard icon={<GearIcon />} value={counts.auto} label="Auto Approved" color="text-purple-600" ring="ring-purple-200" bg="bg-purple-50" />
@@ -462,7 +483,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
         <StatCard icon={<ClockIcon />} value={counts.pending} label="Pending Review" color="text-amber-600" ring="ring-amber-200" bg="bg-amber-50" />
         <StatCard icon={<XIcon />} value={counts.rejected} label="Rejected" color="text-red-600" ring="ring-red-200" bg="bg-red-50" />
       </div>
-
+ 
       {/* Table */}
       <div ref={tableRef} className="rounded-xl border" style={{ background: '#102B48', borderColor: '#214260' }}>
         <table className="w-full">
@@ -534,7 +555,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
             )}
           </tbody>
         </table>
-
+ 
         {/* Pagination */}
         <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #18334F' }}>
           <span className="text-[12px]" style={{ color: '#8FA7BF' }}>
@@ -582,8 +603,8 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
           </div>
         </div>
       </div>
-
-
+ 
+ 
       {/* Detail modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end" onClick={() => setSelected(null)}>
@@ -601,28 +622,28 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                 </svg>
               </button>
             </div>
-
+ 
             <div className="px-6 py-5 flex-1 overflow-y-auto space-y-5">
               {/* ID + status */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-[14px] font-bold" style={{ color: '#F4F8FC' }} title={selected.id}>{shortId(selected.id)}</span>
-                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusStyle[effectiveStatus(selected)]}`}>
+                  <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${statusStyle[effectiveStatus(selected)]}`}>
                     {effectiveStatus(selected)}
                   </span>
                 </div>
-                <span className="text-[11px]" style={{ color: '#8FA7BF' }}>Detected On: {selected.detected}</span>
+                <span className="text-[11px] whitespace-nowrap" style={{ color: '#8FA7BF' }}>Detected On: {selected.detected}</span>
               </div>
-
+ 
               {/* Drift type grid */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-3">
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#8FA7BF' }}>Drift Type</div>
-                  <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ background: '#103B70', color: '#2DA8FF' }}>{selected.driftType}</span>
+                  <span className="text-[11px] font-semibold px-2 py-1 rounded-md inline-block" style={{ background: '#103B70', color: '#2DA8FF' }}>{selected.driftType}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#8FA7BF' }}>Column Name</div>
-                  <div className="text-[12px] font-medium leading-snug" style={{ color: '#F4F8FC' }}>{selected.column}</div>
+                  <div className="text-[12px] font-medium leading-snug break-all" style={{ color: '#F4F8FC' }}>{selected.column}</div>
                 </div>
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#8FA7BF' }}>Current Data Type</div>
@@ -633,7 +654,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                   <div className="text-[12px] font-mono" style={{ color: '#E6EEF7' }}>{selected.newType ?? 'NULL'}</div>
                 </div>
               </div>
-
+ 
               {/* Schema version + CDR */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -645,7 +666,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                   <div className="text-[12px]" style={{ color: '#E6EEF7' }}>{selected.cdrConcept ?? '—'}</div>
                 </div>
               </div>
-
+ 
               {/* Tags */}
               <div className="rounded-lg p-4" style={{ border: '1px solid #214260' }}>
                 <div className="text-[12px] font-semibold mb-3" style={{ color: '#F4F8FC' }}>Tags</div>
@@ -677,17 +698,18 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                         disabled={!tagFieldEnabled}
                         title={tagFieldEnabled ? undefined : `Not used for ${tagType} tags`}
                         className="w-full appearance-none rounded-lg px-3 py-2 text-[12px] focus:outline-none cursor-pointer pr-8 disabled:cursor-not-allowed"
-                        style={{ background: '#091C30', border: '1px solid #294863', color: '#E6EEF7' }}
+                        style={{ background: '#091C30', border: '1px solid #294863', color: '#E6EEF7', maxHeight: 200, overflowY: 'auto' }}
+                        size={tagFieldEnabled ? 1 : undefined}
                       >
                         <option value={NO_TAG_FIELD}>None</option>
-                        {TAG_FIELD_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                        {TAG_FIELD_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                       <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#8FA7BF' }} />
                     </div>
                   </div>
                 </div>
               </div>
-
+ 
               {/* Field Details */}
               <div>
                 <div className="text-[12px] font-semibold mb-3" style={{ color: '#F4F8FC' }}>Field Details</div>
@@ -696,7 +718,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                   <SchemaBox label="New Schema" col={selected.column} type={selected.newType} shade="blue" />
                 </div>
               </div>
-
+ 
               {/* Confidence */}
               <div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: '#8FA7BF' }}>Confidence Score</div>
@@ -716,7 +738,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                   </div>
                 )}
               </div>
-
+ 
               {/* Justification */}
               <div>
                 <div className="text-[12px] font-semibold mb-2" style={{ color: '#F4F8FC' }}>Steward Decision Justification</div>
@@ -731,7 +753,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
                 <div className="text-right text-[10px] mt-1" style={{ color: '#8FA7BF' }}>{justification.length}/500</div>
               </div>
             </div>
-
+ 
             {/* Actions */}
             <div className="px-6 py-4 flex items-center gap-2 flex-shrink-0" style={{ borderTop: '1px solid #18334F', background: '#061426' }}>
               <button
@@ -757,7 +779,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
     </div>
   )
 }
-
+ 
 // One line on where steward decisions are in the write-back to the
 // lakehouse. Hidden when there is nothing to report.
 function SyncBanner({ sync }: { sync: SyncSummary }) {
@@ -770,7 +792,7 @@ function SyncBanner({ sync }: { sync: SyncSummary }) {
     synced: { background: '#103E3A', border: '1px solid rgba(24,199,160,0.3)', color: '#18C7A0' },
     failed: { background: '#492431', border: '1px solid rgba(255,100,124,0.3)', color: '#FF647C' },
   }
-
+ 
   if (!sync.enabled) {
     if (sync.localOnly === 0) return null
     return (
@@ -780,7 +802,7 @@ function SyncBanner({ sync }: { sync: SyncSummary }) {
       </div>
     )
   }
-
+ 
   if (sync.failed > 0 || sync.lastError) {
     return (
       <div className={base} style={tone.failed}>
@@ -792,7 +814,7 @@ function SyncBanner({ sync }: { sync: SyncSummary }) {
       </div>
     )
   }
-
+ 
   if (sync.syncing > 0) {
     return (
       <div className={base} style={tone.syncing}>
@@ -822,7 +844,7 @@ function SyncBanner({ sync }: { sync: SyncSummary }) {
   }
   return null
 }
-
+ 
 function StatCard({ icon, value, label, color, bg }: { icon: React.ReactNode; value: number; label: string; color: string; ring: string; bg: string }) {
   const iconStyle = bg === 'bg-amber-50' ? { background: '#493715', color: '#F5A623' }
     : bg === 'bg-emerald-50' ? { background: '#103E3A', color: '#18C7A0' }
@@ -844,19 +866,23 @@ function StatCard({ icon, value, label, color, bg }: { icon: React.ReactNode; va
     </div>
   )
 }
-
+ 
 function SchemaBox({ label, col, type, shade }: { label: string; col: string; type: string | null; shade: 'slate' | 'blue' }) {
   const headerColor = shade === 'blue' ? '#2DA8FF' : '#8FA7BF'
   const borderColor = shade === 'blue' ? '#103B70' : '#214260'
   return (
-    <div className="rounded-lg p-3" style={{ background: '#061426', border: `1px solid ${borderColor}` }}>
+    <div className="rounded-lg p-3 min-w-0" style={{ background: '#061426', border: `1px solid ${borderColor}` }}>
       <div className="text-[10px] font-bold uppercase tracking-wide mb-2" style={{ color: headerColor }}>{label}</div>
-      <table className="w-full">
+      <table className="w-full table-fixed">
+        <colgroup>
+          <col style={{ width: '40%' }} />
+          <col style={{ width: '60%' }} />
+        </colgroup>
         <tbody>
           {[['Column Name', col], ['Data Type', type ?? 'NULL']].map(([k, v]) => (
             <tr key={k}>
-              <td className="text-[11px] pr-2 py-0.5" style={{ color: '#8FA7BF' }}>{k}</td>
-              <td className="text-[11px] font-medium font-mono py-0.5" style={{ color: '#F4F8FC' }}>{v}</td>
+              <td className="text-[11px] pr-2 py-0.5 align-top" style={{ color: '#8FA7BF' }}>{k}</td>
+              <td className="text-[11px] font-medium font-mono py-0.5 break-all" style={{ color: '#F4F8FC' }}>{v}</td>
             </tr>
           ))}
         </tbody>
@@ -864,7 +890,7 @@ function SchemaBox({ label, col, type, shade }: { label: string; col: string; ty
     </div>
   )
 }
-
+ 
 function ClockIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -897,7 +923,7 @@ function GearIcon() {
     </svg>
   )
 }
-
+ 
 function ChevronDown({ className = '', style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} style={style}>
@@ -905,3 +931,5 @@ function ChevronDown({ className = '', style }: { className?: string; style?: Re
     </svg>
   )
 }
+ 
+ 

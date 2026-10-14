@@ -147,8 +147,8 @@ export default function App() {
           {page === 'stewardship' && <StewardshipPage tab={stewardTab} onTabChange={setStewardTab} onNotify={addNotification} />}
           {page === 'data-engineering' && <DataEngineeringPage />}
           {page === 'data-reliability' && <DataReliabilityPage />}
-          {page === 'reporting' && <ReportingPage />}
-          {page === 'ai-chat' && <AIChatPage />}
+          <div style={{ display: page === 'reporting' ? 'contents' : 'none' }}><ReportingPage /></div>
+          <div style={{ display: page === 'ai-chat' ? 'contents' : 'none' }}><AIChatPage /></div>
         </main>
       </div>
       {/* Notification panel rendered at root level to escape header stacking context */}
@@ -216,7 +216,7 @@ function SidebarLogo({ collapsed }: { collapsed: boolean }) {
               <span className="text-[8px] align-super" style={{ color: 'rgba(244,248,252,0.4)' }}>®</span>
             </div>
             <div className="text-[8px] font-mono uppercase tracking-widest leading-tight whitespace-nowrap mt-0.5" style={{ color: '#16C7D9', opacity: 0.7 }}>
-              Intelligent Data Platform
+              Adrosonic Intelligent Data Engine
             </div>
           </div>
         )}
@@ -339,6 +339,7 @@ function SidebarBottom({ collapsed }: { collapsed: boolean }) {
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: '#1683FF' }}>AM</div>
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-medium truncate" style={{ color: '#F4F8FC' }}>Avery Morgan</div>
+            <div className="text-[10px] truncate" style={{ color: '#8FA7BF' }}>Data Steward</div>
           </div>
         </div>
       )}

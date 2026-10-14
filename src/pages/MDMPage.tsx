@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import type { AppNotification } from '../App'
 import { makeNotif } from '../App'
-
+ 
 // ---- GET /api/mdm/records: rows of the MDM review table ----------------
 // (LLM_MDM_LH.mdm.mdm_preview_ui_table, read through the Fabric SQL
 // endpoint; see server/components/mdm/routes.py).
 type MdmRow = Record<string, unknown>
-
+ 
 interface MdmRecords {
   source: string
   columns: string[]
   rows: MdmRow[]
   truncated: boolean
 }
-
+ 
 // mdm_preview_ui_table columns used by this page.
 const COL = {
   id: 'EXCEPTION_ID',
@@ -28,16 +28,21 @@ const COL = {
   fieldsB: 'RECORD_B_FIELDS',
   matchScore: 'MATCH_SCORE',
   llmReason: 'LLM_REASON',
+  masterId: 'MASTER_ID',
+  masterName: 'MASTER_NAME',
+  createdDate: 'CREATED_DATE',
+  updatedDate: 'UPDATED_DATE',
+  mdmRunId: 'MDM_RUN_ID',
 } as const
-
+ 
 const PAGE_SIZE = 10
-
+ 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
-
+ 
 // ---- Status --------------------------------------------------------------
 // STATUS values from the table (PENDING, APPROVED, ...) shown as labels; a
 // decision made on this page overrides the row's status in the table.
@@ -48,21 +53,21 @@ const STATUS_LABELS: Record<string, string> = {
   MERGED: 'Approved',
   REJECTED: 'Rejected',
 }
-
+ 
 function statusLabel(raw: unknown): string {
   const s = formatCell(raw)
   if (s === '—') return 'Pending'
   const key = s.trim().toUpperCase().replace(/\s+/g, '_')
   return STATUS_LABELS[key] ?? s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
 }
-
+ 
 const STATUS_STYLE: Record<string, React.CSSProperties> = {
   Pending: { background: '#493715', color: '#F5A623', border: '1px solid rgba(245,166,35,0.3)' },
   Approved: { background: '#103E3A', color: '#18C7A0', border: '1px solid rgba(24,199,160,0.3)' },
   Rejected: { background: '#492431', color: '#FF647C', border: '1px solid rgba(255,100,124,0.3)' },
 }
 const OTHER_STATUS_STYLE: React.CSSProperties = { background: '#103B70', color: '#2DA8FF', border: '1px solid rgba(45,168,255,0.3)' }
-
+ 
 // ---- Record fields (JSON) -----------------------------------------------
 // RECORD_*_FIELDS hold a JSON object whose keys vary by entity type (and can
 // differ between A and B), e.g. {"Name": ..., "City": ...}. Accepts the JSON
@@ -77,14 +82,14 @@ function parseFields(value: unknown): Record<string, unknown> {
     return {}
   }
 }
-
+ 
 interface FieldRow {
   field: string
   a: string
   b: string
   differs: boolean
 }
-
+ 
 // One row per field found in either record: A's fields in A's order, then
 // any only B has. A field missing on one side shows "—" and counts as a
 // difference; otherwise values differ if they differ ignoring case/spacing.
@@ -100,7 +105,7 @@ function compareFields(rawA: unknown, rawB: unknown): FieldRow[] {
     differs: !(field in a) || !(field in b) || norm(a[field]) !== norm(b[field]),
   }))
 }
-
+ 
 // ---- Match score -----------------------------------------------------------
 // MATCH_SCORE is 0–100 (e.g. 64.5); a 0–1 value is also accepted. Shown like
 // the Schema Drift confidence score: a bar plus the value, green from 90%,
@@ -113,7 +118,7 @@ function scoreView(raw: unknown): { pct: number; text: string; color: string } |
   const color = pct >= 90 ? '#18C7A0' : pct >= 75 ? '#F5A623' : '#FF647C'
   return { pct, text, color }
 }
-
+ 
 export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) => void }) {
   const [records, setRecords] = useState<MdmRecords | null>(null)
   const [loading, setLoading] = useState(true)
@@ -126,7 +131,8 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
   // already arrive in each row's STATUS from the backend.
   const [decisions, setDecisions] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-
+  const [showFabric, setShowFabric] = useState(false)
+ 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -148,34 +154,34 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
       cancelled = true
     }
   }, [])
-
+ 
   const rows = records?.rows ?? []
   const idOf = (row: MdmRow) => formatCell(row[COL.id])
   const effectiveStatus = (row: MdmRow) => decisions[idOf(row)] ?? statusLabel(row[COL.status])
-
+ 
   // Filter options: the usual three, plus any other status in the data.
   const statusOptions = ['All', ...new Set(['Pending', 'Approved', 'Rejected', ...rows.map(effectiveStatus)])]
   const filtered = statusFilter === 'All' ? rows : rows.filter((r) => effectiveStatus(r) === statusFilter)
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const current = Math.min(page, totalPages)
   const pageRows = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
-
+ 
   const counts = {
     pending: rows.filter((r) => effectiveStatus(r) === 'Pending').length,
     approved: rows.filter((r) => effectiveStatus(r) === 'Approved').length,
     rejected: rows.filter((r) => effectiveStatus(r) === 'Rejected').length,
   }
-
+ 
   function openRecord(row: MdmRow) {
     setViewing(row)
     setNote('')
   }
-
+ 
   function closeRecord() {
     setViewing(null)
     setNote('')
   }
-
+ 
   // Saved by the backend (POST /api/mdm/decision), which applies it to the
   // rows on every load, so the status sticks across refreshes. The row's
   // status changes only once the save succeeds.
@@ -209,39 +215,59 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
       setSaving(false)
     }
   }
-
-  // Esc closes the pop-up.
+ 
+  // Esc closes pop-ups.
   useEffect(() => {
-    if (!viewing) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRecord() }
+    if (!viewing && !showFabric) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showFabric) setShowFabric(false)
+        else closeRecord()
+      }
+    }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [viewing])
-
+  }, [viewing, showFabric])
+ 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Page header */}
       <div className="px-8 py-5 flex-shrink-0" style={{ background: '#081A2E', borderBottom: '1px solid #18334F' }}>
-        <h1 className="text-xl font-bold" style={{ color: '#F4F8FC' }}>Master Data Management</h1>
-        <p className="text-[13px] mt-1" style={{ color: '#8FA7BF' }}>
-          Review duplicate and conflicting records, and merge or reject them.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: '#F4F8FC' }}>Master Data Management</h1>
+            <p className="text-[13px] mt-1" style={{ color: '#8FA7BF' }}>
+              Review duplicate and conflicting records, and merge or reject them.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFabric(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors"
+            style={{ background: '#103B70', border: '1px solid #214260', color: '#2DA8FF' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="2" y="2" width="12" height="12" rx="2" />
+              <path d="M2 6h12M6 6v8" />
+            </svg>
+            View Master Table
+          </button>
+        </div>
       </div>
-
+ 
       <div className="flex-1 overflow-y-auto px-8 py-6">
         {error && (
           <div className="mb-5 rounded-lg px-4 py-3 text-[12px]" style={{ background: '#492431', border: '1px solid rgba(255,100,124,0.3)', color: '#FF647C' }}>
             {error}
           </div>
         )}
-
+ 
         {/* Stat cards */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           <StatCard value={counts.pending} label="Pending" color="#F5A623" />
           <StatCard value={counts.approved} label="Approved" color="#18C7A0" />
           <StatCard value={counts.rejected} label="Rejected" color="#FF647C" />
         </div>
-
+ 
         {/* Table */}
         <div className="rounded-xl border overflow-x-auto" style={{ background: '#102B48', borderColor: '#214260' }}>
           <table className="w-full">
@@ -309,7 +335,7 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
               )}
             </tbody>
           </table>
-
+ 
           {/* Pagination */}
           <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #18334F' }}>
             <span className="text-[12px]" style={{ color: '#8FA7BF' }}>
@@ -335,7 +361,12 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
           </div>
         </div>
       </div>
-
+ 
+      {/* ── Master table pop-up ── */}
+      {showFabric && (
+        <MasterTablePopup onClose={() => setShowFabric(false)} />
+      )}
+ 
       {/* ── Record pop-up: fixed header and actions, scrollable body ── */}
       {viewing && (
         <RecordPopup
@@ -351,7 +382,7 @@ export default function MDMPage({ onNotify }: { onNotify: (n: AppNotification) =
     </div>
   )
 }
-
+ 
 function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
   row: MdmRow
   status: string
@@ -366,7 +397,7 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
   const differing = fields.filter((f) => f.differs).length
   const score = scoreView(row[COL.matchScore])
   const llmReason = formatCell(row[COL.llmReason])
-
+ 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6" onClick={onClose}>
       <div
@@ -388,7 +419,7 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" /></svg>
           </button>
         </div>
-
+ 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
           {/* Match score (shown like the Schema Drift confidence score) */}
@@ -405,7 +436,7 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
               </div>
             )}
           </div>
-
+ 
           {/* LLM reason (empty for now: placeholder until the LLM step fills it) */}
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: '#8FA7BF' }}>LLM Reason</div>
@@ -413,7 +444,7 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
               {llmReason === '—' ? <span className="italic">No LLM reasoning available for this record yet.</span> : llmReason}
             </div>
           </div>
-
+ 
           {/* Record A / Record B: the two names, then every field from the
               RECORD_A_FIELDS / RECORD_B_FIELDS JSON (keys vary per row) */}
           <div>
@@ -467,7 +498,7 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
             </div>
           </div>
         </div>
-
+ 
         {/* Actions */}
         <div className="px-6 py-4 flex items-center gap-3 flex-shrink-0 rounded-b-2xl" style={{ borderTop: '1px solid #18334F', background: '#061426' }}>
           <input
@@ -507,7 +538,139 @@ function RecordPopup({ row, status, note, saving, onNote, onClose, onDecide }: {
     </div>
   )
 }
-
+ 
+const MASTER_PAGE_SIZE = 15
+ 
+const MASTER_COLS: { key: string; label: string; mono?: boolean }[] = [
+  { key: 'MASTER_ID', label: 'Master ID', mono: true },
+  { key: 'ENTITY_TYPE', label: 'Entity Type' },
+  { key: 'MASTER_NAME', label: 'Master Name' },
+  { key: 'STATUS', label: 'Status' },
+  { key: 'CREATED_DATE', label: 'Created Date' },
+  { key: 'UPDATED_DATE', label: 'Updated Date' },
+  { key: 'MDM_RUN_ID', label: 'MDM Run ID', mono: true },
+]
+ 
+function MasterTablePopup({ onClose }: { onClose: () => void }) {
+  const [rows, setRows] = useState<MdmRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+ 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/mdm/master-records')
+        const body = await res.json().catch(() => null)
+        if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`)
+        if (!cancelled) setRows((body as MdmRecords).rows)
+      } catch (err) {
+        if (!cancelled) setError(`Could not load master records: ${(err as Error).message}`)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+ 
+  const totalPages = Math.max(1, Math.ceil(rows.length / MASTER_PAGE_SIZE))
+  const current = Math.min(page, totalPages)
+  const pageRows = rows.slice((current - 1) * MASTER_PAGE_SIZE, current * MASTER_PAGE_SIZE)
+ 
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Master Table"
+        className="rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col"
+        style={{ background: '#0A1B31', border: '1px solid #214260' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #18334F' }}>
+          <h2 className="text-[15px] font-bold" style={{ color: '#F4F8FC' }}>Master Table</h2>
+          <button onClick={onClose} aria-label="Close" style={{ color: '#8FA7BF' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" /></svg>
+          </button>
+        </div>
+ 
+        <div className="flex-1 overflow-auto">
+          <table className="w-full">
+            <thead>
+              <tr style={{ borderBottom: '1px solid #18334F', position: 'sticky', top: 0, background: '#0D2440', zIndex: 1 }}>
+                <th className="text-left text-[11px] font-semibold px-5 py-3 whitespace-nowrap" style={{ color: '#8FA7BF' }}>#</th>
+                {MASTER_COLS.map((c) => (
+                  <th key={c.key} className="text-left text-[11px] font-semibold px-5 py-3 whitespace-nowrap" style={{ color: '#8FA7BF' }}>{c.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={MASTER_COLS.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#8FA7BF' }}>
+                    Loading master records from Fabric…
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={MASTER_COLS.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#FF647C' }}>
+                    {error}
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={MASTER_COLS.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#8FA7BF' }}>
+                    No master records found.
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #18334F' }}>
+                    <td className="px-5 py-3 text-[12px]" style={{ color: '#5a7a9a' }}>{(current - 1) * MASTER_PAGE_SIZE + i + 1}</td>
+                    {MASTER_COLS.map((c) => (
+                      <td
+                        key={c.key}
+                        className={`px-5 py-3 text-[12px] ${c.mono ? 'font-mono' : ''}`}
+                        style={{ color: c.key === 'MASTER_ID' ? '#2DA8FF' : '#E6EEF7' }}
+                      >
+                        {formatCell(row[c.key])}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+ 
+        <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ borderTop: '1px solid #18334F' }}>
+          <span className="text-[12px]" style={{ color: '#8FA7BF' }}>
+            {rows.length === 0
+              ? 'No records'
+              : `Showing ${(current - 1) * MASTER_PAGE_SIZE + 1}–${Math.min(current * MASTER_PAGE_SIZE, rows.length)} of ${rows.length} record${rows.length === 1 ? '' : 's'}`}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(Math.max(current - 1, 1))}
+              disabled={current === 1}
+              className="w-7 h-7 flex items-center justify-center rounded text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid #214260', color: '#8FA7BF' }}
+            >‹</button>
+            <span className="px-2 text-[12px]" style={{ color: '#8FA7BF' }}>{current} / {totalPages}</span>
+            <button
+              onClick={() => setPage(Math.min(current + 1, totalPages))}
+              disabled={current === totalPages}
+              className="w-7 h-7 flex items-center justify-center rounded text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid #214260', color: '#8FA7BF' }}
+            >›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+ 
 function StatCard({ value, label, color }: { value: number; label: string; color: string }) {
   return (
     <div className="rounded-xl border px-4 py-4" style={{ background: '#102B48', borderColor: '#214260' }}>
@@ -516,3 +679,5 @@ function StatCard({ value, label, color }: { value: number; label: string; color
     </div>
   )
 }
+ 
+ 

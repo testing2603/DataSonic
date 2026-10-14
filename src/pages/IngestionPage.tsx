@@ -748,7 +748,7 @@ export default function IngestionPage({ onNavigate, onNotify }: Props) {
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1" style={{ color: '#F4F8FC' }}>Document Ingestion</h1>
         <p className="text-[13px] max-w-2xl" style={{ color: '#8FA7BF', lineHeight: '1.75' }}>
-          Drop in broker bordereaux, claims reports, or policy schedules — the platform classifies, parses, and routes each file automatically.
+          Drop in broker bordereaux, claims reports, or policy schedules — the engine classifies, parses, and routes each file automatically.
           Every upload gets a run ID for end-to-end traceability, with real-time status tracking from receipt through schema validation and downstream processing.
         </p>
       </div>

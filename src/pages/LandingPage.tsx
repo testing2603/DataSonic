@@ -93,7 +93,7 @@ const pipeline: {
         <line x1="19" y1="9.5" x2="20.5" y2="9.5" strokeWidth="1.8" />
       </svg>
     ),
-    desc: 'Query your entire data platform in plain English — no SQL required.',
+    desc: 'Query your entire data engine in plain English — no SQL required.',
     detail: 'Powered by Claude. Ask about ingestion status, quality scores, schema history, or anomalies.',
   },
 ]
@@ -220,7 +220,7 @@ export default function LandingPage({ onNavigate }: Props) {
       {/* Sticky in-page nav */}
       <nav className="sticky top-0 z-20 flex items-center justify-center gap-1 py-2 px-4"
         style={{ background: 'rgba(6,20,38,0.88)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #18334F' }}>
-        {[{ label: 'Overview', id: 'hero' }, { label: 'Platform Flow', id: 'flow' }, { label: 'Modules', id: 'modules' }].map(s => (
+        {[{ label: 'Overview', id: 'hero' }, { label: 'Engine Flow', id: 'flow' }, { label: 'Modules', id: 'modules' }].map(s => (
           <button key={s.id} onClick={() => scrollToSection(s.id)}
             className="px-4 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
             style={{ color: '#8FA7BF' }}
@@ -240,12 +240,12 @@ export default function LandingPage({ onNavigate }: Props) {
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               animation: 'gradientShift 5s ease infinite',
             }}>
-            Intelligent Data Platform
+            Adrosonic Intelligent Data Engine
           </h1>
           <p className="text-[15px] max-w-2xl mx-auto mb-8" style={{ color: '#8FA7BF', lineHeight: '1.85', letterSpacing: '0.01em' }}>
             An end-to-end data ecosystem that transforms raw, fragmented data into{' '}
             <span style={{ color: '#2DA8FF', fontWeight: 500 }}>trusted, governed, and analytics-ready insights</span>
-            {' '}— unifying ingestion, schema governance, MDM, data engineering, AI, and reporting in one intelligent platform.
+            {' '}— unifying ingestion, schema governance, MDM, data engineering, AI, and reporting in one intelligent engine.
           </p>
           <div className="flex items-center justify-center gap-3 mb-10">
             <button onClick={() => onNavigate('ingestion')}
@@ -259,7 +259,7 @@ export default function LandingPage({ onNavigate }: Props) {
               style={{ border: '1px solid #214260', color: '#8FA7BF' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#F4F8FC')}
               onMouseLeave={e => (e.currentTarget.style.color = '#8FA7BF')}
-            >Explore Platform</button>
+            >Explore Engine</button>
           </div>
         </div>
       </section>
@@ -268,7 +268,7 @@ export default function LandingPage({ onNavigate }: Props) {
       <section id="flow" ref={flowSection.ref} className="px-8 py-10">
         <div className="text-center mb-8"
           style={{ opacity: flowSection.visible ? 1 : 0, transform: flowSection.visible ? 'none' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
-          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Platform Data Flow</h2>
+          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Engine Data Flow</h2>
           <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Click any node to navigate — hover for details</p>
         </div>
 
@@ -283,8 +283,8 @@ export default function LandingPage({ onNavigate }: Props) {
       <section id="modules" ref={cardsSection.ref} className="px-8 pb-16">
         <div className="text-center mb-8"
           style={{ opacity: cardsSection.visible ? 1 : 0, transform: cardsSection.visible ? 'none' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
-          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Platform Modules</h2>
-          <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Six integrated modules — one unified insurance data platform</p>
+          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Engine Modules</h2>
+          <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Five integrated modules — one unified insurance data engine</p>
         </div>
         <div className="grid grid-cols-3 gap-4">
           {pipeline.map((m, i) => (
