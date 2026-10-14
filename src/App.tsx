@@ -7,10 +7,12 @@ import DataEngineeringPage from './pages/DEComponent'
 import DataReliabilityPage from './pages/DataReliabilityPage'
 import ReportingPage from './pages/ReportingPage'
 import AIChatPage from './pages/AIChatPage'
+import MDFPage from './pages/MDFPage'
 
 export type Page =
   | 'home'
   | 'ingestion'
+  | 'mdf'
   | 'stewardship'
   | 'data-engineering'
   | 'data-reliability'
@@ -39,6 +41,7 @@ type NavItem =
 const nav: NavItem[] = [
   { kind: 'item', id: 'home', label: 'Home', icon: HomeIcon },
   { kind: 'item', id: 'ingestion', label: 'Ingestion', icon: IngestIcon },
+  { kind: 'item', id: 'mdf', label: 'Metadata Framework', icon: MDFIcon },
   {
     kind: 'group',
     label: 'Stewardship Review',
@@ -56,6 +59,7 @@ const nav: NavItem[] = [
 const breadcrumbs: Record<Page, string[]> = {
   home: ['Home'],
   ingestion: ['Ingestion'],
+  mdf: ['Metadata Framework'],
   stewardship: ['Stewardship Review'],
   'data-engineering': ['Data Engineering'],
   'data-reliability': ['Data Reliability Agent'],
@@ -144,6 +148,7 @@ export default function App() {
         <main className="flex-1 overflow-auto relative" style={{ zIndex: 1 }}>
           {page === 'home' && <LandingPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} />}
           {page === 'ingestion' && <IngestionPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} />}
+          {page === 'mdf' && <MDFPage />}
           {page === 'stewardship' && <StewardshipPage tab={stewardTab} onTabChange={setStewardTab} onNotify={addNotification} />}
           {page === 'data-engineering' && <DataEngineeringPage />}
           {page === 'data-reliability' && <DataReliabilityPage />}
@@ -216,7 +221,7 @@ function SidebarLogo({ collapsed }: { collapsed: boolean }) {
               <span className="text-[8px] align-super" style={{ color: 'rgba(244,248,252,0.4)' }}>®</span>
             </div>
             <div className="text-[8px] font-mono uppercase tracking-widest leading-tight whitespace-nowrap mt-0.5" style={{ color: '#16C7D9', opacity: 0.7 }}>
-              Adrosonic Intelligent Data Engine
+              Adrosonic Intelligent Data Platform
             </div>
           </div>
         )}
@@ -509,6 +514,14 @@ function IngestIcon({ size = 16, className = '' }: { size?: number; className?: 
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
       <rect x="2" y="2" width="12" height="12" rx="1.5" />
       <path d="M5.5 8H10.5M8 5.5V10.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+function MDFIcon({ size = 16, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
+      <rect x="2" y="1.5" width="12" height="13" rx="1.5" />
+      <path d="M5 5h6M5 8h6M5 11h3" strokeLinecap="round" />
     </svg>
   )
 }

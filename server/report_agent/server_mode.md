@@ -29,6 +29,15 @@ if a field you need is genuinely missing from the ontology.
    from the error message (at most 2 retries per query).
 3. Write `report.yaml` following the rules and the field reference. Every field must be a model
    column/measure from the ontology or a `report_measures` entry you define.
+   **Slicer rule:** When the user's prompt mentions a specific dimension value (year, product,
+   status, broker, region, etc.), write it as a slicer with `default:` — NOT a page `filters:`
+   entry. Page filters are locked in Power BI Service and users cannot change them. Reserve page
+   `filters:` only for fixed scope boundaries like `Date[Year] <= 2026`. Example: "policies in
+   2024" → `{kind: slicer, field: "Date[Year]", single: true, default: 2024}`.
+   **Default slicers:** Users cannot add filters through the PBI Service filter pane on these
+   reports. Every page must include slicers for commonly filtered dimensions so users can interact
+   without regenerating. Always: Currency (mandatory for money). Default: Year and Product.
+   Claims pages: also Claim Status. Policy pages: also Contract Type.
 4. Write `_brief/report-spec.md`, **short** (at most 40 lines): request, audience, assumptions,
    the data-check numbers the titles rely on, and one bullet per page and visual. Don't use the
    full Microsoft report-spec template.

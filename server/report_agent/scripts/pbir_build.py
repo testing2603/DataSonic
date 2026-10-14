@@ -457,6 +457,12 @@ class Builder:
               "objects": {"background": [{"properties": {"color": color(SURFACE), "transparency": lit("0D")}}],
                           "outspace": [{"properties": {"color": color(SURFACE)}}]}}
         if page.get("filters"):
+            for f in page["filters"]:
+                if f.get("op") == "=" and not f.get("_scope_boundary"):
+                    print(f"WARNING: page {page['name']!r} has equality page filter "
+                          f"{f['field']} = {f.get('value')} — this locks the filter in "
+                          f"Power BI Service. Use a slicer with default: instead.",
+                          file=sys.stderr)
             pj["filterConfig"] = {"filters": [filter_obj(self.F, f, f"{pid}:pf{i}") for i, f in enumerate(page["filters"])]}
         (pdir / "page.json").write_text(json.dumps(pj, indent=2, ensure_ascii=False), encoding="utf-8")
 

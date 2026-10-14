@@ -28,6 +28,22 @@ const pipeline: {
     detail: 'AI classifies and routes every document to the correct line of business automatically — zero manual triage.',
   },
   {
+    id: 'mdf',
+    label: 'Metadata Framework',
+    sublabel: 'MDF',
+    short: 'Metadata',
+    color: '#FF6B8A',
+    bg: '#3D1228',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="2" width="16" height="18" rx="2" />
+        <path d="M7 7h8M7 11h8M7 15h4" />
+      </svg>
+    ),
+    desc: 'Configure and govern the shared metadata that powers ingestion and orchestration.',
+    detail: 'Register tables, manage ingestion toggles, execute pipelines, and review audit history — all from one control plane.',
+  },
+  {
     id: 'stewardship',
     label: 'Stewardship Review',
     sublabel: 'Schema / MDM',
@@ -93,14 +109,14 @@ const pipeline: {
         <line x1="19" y1="9.5" x2="20.5" y2="9.5" strokeWidth="1.8" />
       </svg>
     ),
-    desc: 'Query your entire data engine in plain English — no SQL required.',
+    desc: 'Query your entire data platform in plain English — no SQL required.',
     detail: 'Powered by Claude. Ask about ingestion status, quality scores, schema history, or anomalies.',
   },
 ]
 
 // ── Hex flow helpers ──────────────────
 const CX = 300, CY = 300, R = 205
-const HEX_ANGLES = [-90, -18, 54, 126, 198]
+const HEX_ANGLES = [-90, -30, 30, 90, 150, 210]
 function hexPt(angleDeg: number) {
   const rad = (angleDeg * Math.PI) / 180
   return { x: CX + R * Math.cos(rad), y: CY + R * Math.sin(rad) }
@@ -220,7 +236,7 @@ export default function LandingPage({ onNavigate }: Props) {
       {/* Sticky in-page nav */}
       <nav className="sticky top-0 z-20 flex items-center justify-center gap-1 py-2 px-4"
         style={{ background: 'rgba(6,20,38,0.88)', backdropFilter: 'blur(10px)', borderBottom: '1px solid #18334F' }}>
-        {[{ label: 'Overview', id: 'hero' }, { label: 'Engine Flow', id: 'flow' }, { label: 'Modules', id: 'modules' }].map(s => (
+        {[{ label: 'Overview', id: 'hero' }, { label: 'Platform Flow', id: 'flow' }, { label: 'Modules', id: 'modules' }].map(s => (
           <button key={s.id} onClick={() => scrollToSection(s.id)}
             className="px-4 py-1.5 rounded-full text-[11px] font-semibold transition-colors"
             style={{ color: '#8FA7BF' }}
@@ -240,12 +256,12 @@ export default function LandingPage({ onNavigate }: Props) {
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               animation: 'gradientShift 5s ease infinite',
             }}>
-            Adrosonic Intelligent Data Engine
+            Adrosonic Intelligent Data Platform
           </h1>
           <p className="text-[15px] max-w-2xl mx-auto mb-8" style={{ color: '#8FA7BF', lineHeight: '1.85', letterSpacing: '0.01em' }}>
             An end-to-end data ecosystem that transforms raw, fragmented data into{' '}
             <span style={{ color: '#2DA8FF', fontWeight: 500 }}>trusted, governed, and analytics-ready insights</span>
-            {' '}— unifying ingestion, schema governance, MDM, data engineering, AI, and reporting in one intelligent engine.
+            {' '}— unifying ingestion, schema governance, MDM, data engineering, AI, and reporting in one intelligent platform.
           </p>
           <div className="flex items-center justify-center gap-3 mb-10">
             <button onClick={() => onNavigate('ingestion')}
@@ -259,7 +275,7 @@ export default function LandingPage({ onNavigate }: Props) {
               style={{ border: '1px solid #214260', color: '#8FA7BF' }}
               onMouseEnter={e => (e.currentTarget.style.color = '#F4F8FC')}
               onMouseLeave={e => (e.currentTarget.style.color = '#8FA7BF')}
-            >Explore Engine</button>
+            >Explore Platform</button>
           </div>
         </div>
       </section>
@@ -268,7 +284,7 @@ export default function LandingPage({ onNavigate }: Props) {
       <section id="flow" ref={flowSection.ref} className="px-8 py-10">
         <div className="text-center mb-8"
           style={{ opacity: flowSection.visible ? 1 : 0, transform: flowSection.visible ? 'none' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
-          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Engine Data Flow</h2>
+          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Platform Data Flow</h2>
           <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Click any node to navigate — hover for details</p>
         </div>
 
@@ -283,8 +299,8 @@ export default function LandingPage({ onNavigate }: Props) {
       <section id="modules" ref={cardsSection.ref} className="px-8 pb-16">
         <div className="text-center mb-8"
           style={{ opacity: cardsSection.visible ? 1 : 0, transform: cardsSection.visible ? 'none' : 'translateY(16px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }}>
-          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Engine Modules</h2>
-          <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Five integrated modules — one unified insurance data engine</p>
+          <h2 className="text-[22px] font-bold mb-2" style={{ color: '#F4F8FC' }}>Platform Modules</h2>
+          <p className="text-[13px]" style={{ color: '#8FA7BF' }}>Six integrated modules — one unified insurance data platform</p>
         </div>
         <div className="grid grid-cols-3 gap-4">
           {pipeline.map((m, i) => (
