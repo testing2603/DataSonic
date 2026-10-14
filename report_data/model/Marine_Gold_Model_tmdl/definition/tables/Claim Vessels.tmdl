@@ -1,0 +1,249 @@
+/// Grain: One row per claim per vessel (claim_number, imo_number). gold.marine_fact_claim (G1). Rules: KPI-PAYMENT-RATIO, KPI-REPORTING-LAG, KPI-SETTLEMENT-RATIO, MAR2-09b.
+table 'Claim Vessels'
+
+	/// Rows of Claim Vessels. Grain: One row per claim per vessel (claim_number, imo_number).
+	measure '# Claim Vessels' = COUNTROWS('Claim Vessels')
+		formatString: #,##0
+		displayFolder: Counts
+
+	/// Currency check: claim_currency values in context. Money of Claim Vessels shows only when this is 1.
+	measure '# Currencies (Claim Vessels)' = COUNTROWS(VALUES('Claim Vessels'[Claim Currency]))
+		formatString: #,##0
+		displayFolder: Checks
+
+	/// Sum of incurred_amount (ROW); blank unless one currency is in context; no FX.
+	measure 'Total Incurred' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, SUM('Claim Vessels'[Incurred Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Sum of paid_amount (ROW); blank unless one currency is in context; no FX.
+	measure 'Total Paid' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, SUM('Claim Vessels'[Paid Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Sum of salvage_amount (ROW); blank unless one currency is in context; no FX.
+	measure 'Total Salvage' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, SUM('Claim Vessels'[Salvage Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// KPI-REPORTING-LAG: average of claim_reporting_lag_days; never summed.
+	measure 'Average Claim Reporting Lag (Days)' = AVERAGE('Claim Vessels'[Claim Reporting Lag Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-REPORTING-LAG: minimum of claim_reporting_lag_days; never summed.
+	measure 'Minimum Claim Reporting Lag (Days)' = MIN('Claim Vessels'[Claim Reporting Lag Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-REPORTING-LAG: maximum of claim_reporting_lag_days; never summed.
+	measure 'Maximum Claim Reporting Lag (Days)' = MAX('Claim Vessels'[Claim Reporting Lag Days])
+		formatString: #,##0
+		displayFolder: Durations
+
+	/// KPI-PAYMENT-RATIO: DIVIDE(sum paid_amount, sum incurred_amount) over rows where the ratio is valid; never summed or averaged.
+	measure 'Claim Payment Ratio (%)' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, DIVIDE(CALCULATE(SUM('Claim Vessels'[Paid Amount]), NOT ISBLANK('Claim Vessels'[Claim Payment Ratio])), CALCULATE(SUM('Claim Vessels'[Incurred Amount]), NOT ISBLANK('Claim Vessels'[Claim Payment Ratio]))))
+		formatString: 0.00%
+		displayFolder: Ratios
+
+	/// KPI-SETTLEMENT-RATIO: DIVIDE(sum _tmp_settlement_total, sum incurred_amount) over rows where the ratio is valid; never summed or averaged.
+	measure 'Claim Settlement Ratio (%)' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, DIVIDE(SUMX(FILTER('Claim Vessels', NOT ISBLANK('Claim Vessels'[Claim Settlement Ratio])), 'Claim Vessels'[Claim Settlement Ratio] * 'Claim Vessels'[Incurred Amount]), CALCULATE(SUM('Claim Vessels'[Incurred Amount]), NOT ISBLANK('Claim Vessels'[Claim Settlement Ratio]))))
+		formatString: 0.00%
+		displayFolder: Ratios
+
+	/// MAR2-09b: sum of paid_to_date; blank unless one currency is in context.
+	measure 'Total Paid to Date' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, SUM('Claim Vessels'[Paid to Date]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// MAR2-09b: sum of outstanding_amount; blank unless one currency is in context.
+	measure 'Total Outstanding' = IF(COUNTROWS(VALUES('Claim Vessels'[Claim Currency])) = 1, SUM('Claim Vessels'[Outstanding Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Rows of Claim Vessels dated by Notification Date (inactive role).
+	measure '# Claim Vessels (by Notification Date)' = CALCULATE(COUNTROWS('Claim Vessels'), USERELATIONSHIP('Claim Vessels'[Notification Date Key], 'Date'[Date Key]))
+		formatString: #,##0
+		displayFolder: Date roles
+
+	/// Total Incurred dated by Notification Date; same currency rule.
+	measure 'Total Incurred (by Notification Date)' = CALCULATE([Total Incurred], USERELATIONSHIP('Claim Vessels'[Notification Date Key], 'Date'[Date Key]))
+		formatString: #,##0.00
+		displayFolder: Date roles
+
+	column 'Claim Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: claim_sk
+
+	column 'Policy Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: policy_sk
+
+	column 'Vessel Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: vessel_sk
+
+	column 'Customer Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: customer_sk
+
+	column 'Broker Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: broker_sk
+
+	column 'Facility Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: facility_sk
+
+	column 'Claim Number'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: claim_number
+
+	column 'IMO Number'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: imo_number
+
+	column 'Policy Number'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: policy_number
+
+	column Executive
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: executive
+
+	column 'Incurred Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: incurred_amount
+
+	column 'Paid Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: paid_amount
+
+	column 'Salvage Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: salvage_amount
+
+	column 'Claim Reporting Lag Days'
+		dataType: int64
+		isHidden
+		formatString: #,##0
+		summarizeBy: none
+		sourceColumn: claim_reporting_lag_days
+
+	column 'Claim Payment Ratio'
+		dataType: double
+		isHidden
+		summarizeBy: none
+		sourceColumn: claim_payment_ratio
+
+	column 'Claim Settlement Ratio'
+		dataType: double
+		isHidden
+		summarizeBy: none
+		sourceColumn: claim_settlement_ratio
+
+	column 'Gold Run ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_run_id
+
+	column 'Gold Timestamp'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_timestamp
+
+	column 'Loss Date Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: loss_date_sk
+
+	column 'Notification Date Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: notification_date_sk
+
+	column UMR
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: umr
+
+	column 'Loss Date'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd
+		summarizeBy: none
+		sourceColumn: loss_date
+
+	column 'Notification Date'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: notification_date
+
+	column 'Claim Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: claim_currency
+
+	column 'Paid to Date'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: paid_to_date
+
+	column 'Outstanding Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: outstanding_amount
+
+	partition 'Claim Vessels' = entity
+		mode: directLake
+		source
+			entityName: marine_fact_claim
+			schemaName: gold
+			expressionSource: 'DirectLake - Marine_Gold_Model'
+

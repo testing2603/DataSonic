@@ -1,0 +1,178 @@
+/// Grain: One row per policy (policy_number). gold.marine_fact_policy (G1).
+table 'Policy Exposures'
+
+	/// Rows of Policy Exposures. Grain: One row per policy (policy_number).
+	measure '# Policy Exposures' = COUNTROWS('Policy Exposures')
+		formatString: #,##0
+		displayFolder: Counts
+
+	/// Currency check: currency values in context. Money of Policy Exposures shows only when this is 1.
+	measure '# Currencies (Policy Exposures)' = COUNTROWS(VALUES('Policy Exposures'[Currency]))
+		formatString: #,##0
+		displayFolder: Checks
+
+	/// Sum of limit_amount (ROW); blank unless one currency is in context; no FX.
+	measure 'Total Limit' = IF(COUNTROWS(VALUES('Policy Exposures'[Currency])) = 1, SUM('Policy Exposures'[Limit Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Sum of premium_amount (ROW); blank unless one currency is in context; no FX.
+	measure 'Total Premium' = IF(COUNTROWS(VALUES('Policy Exposures'[Currency])) = 1, SUM('Policy Exposures'[Premium Amount]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Sum of insured_value_gbp (ROW); in GBP; never mixed.
+	measure 'Total Insured Value (GBP)' = SUM('Policy Exposures'[Insured Value (GBP)])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Sum of gross_tonnage (ROW); not money.
+	measure 'Total Gross Tonnage' = SUM('Policy Exposures'[Gross Tonnage])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Rows of Policy Exposures dated by Insurance Period End (inactive role).
+	measure '# Policy Exposures (by Insurance Period End)' = CALCULATE(COUNTROWS('Policy Exposures'), USERELATIONSHIP('Policy Exposures'[Insurance Period End Key], 'Date'[Date Key]))
+		formatString: #,##0
+		displayFolder: Date roles
+
+	/// Total Limit dated by Insurance Period End; same currency rule.
+	measure 'Total Limit (by Insurance Period End)' = CALCULATE([Total Limit], USERELATIONSHIP('Policy Exposures'[Insurance Period End Key], 'Date'[Date Key]))
+		formatString: #,##0.00
+		displayFolder: Date roles
+
+	/// Rows of Policy Exposures dated by Policy Issue Date (inactive role).
+	measure '# Policy Exposures (by Policy Issue Date)' = CALCULATE(COUNTROWS('Policy Exposures'), USERELATIONSHIP('Policy Exposures'[Policy Issue Date Key], 'Date'[Date Key]))
+		formatString: #,##0
+		displayFolder: Date roles
+
+	/// Total Limit dated by Policy Issue Date; same currency rule.
+	measure 'Total Limit (by Policy Issue Date)' = CALCULATE([Total Limit], USERELATIONSHIP('Policy Exposures'[Policy Issue Date Key], 'Date'[Date Key]))
+		formatString: #,##0.00
+		displayFolder: Date roles
+
+	column 'Policy Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: policy_sk
+
+	column 'Broker Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: broker_sk
+
+	column 'Facility Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: facility_sk
+
+	column 'Customer Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: customer_sk
+
+	column 'Vessel Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: vessel_sk
+
+	column 'Insurance Period Start Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: insurance_period_start_sk
+
+	column 'Insurance Period End Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: insurance_period_end_sk
+
+	column 'Policy Issue Date Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: policy_issue_date_sk
+
+	column 'Policy Number'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: policy_number
+
+	column UMR
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: umr
+
+	column 'IMO Number'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: imo_number
+
+	column Currency
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency
+
+	column 'Limit Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: limit_amount
+
+	column 'Premium Amount'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: premium_amount
+
+	column 'Insured Value (GBP)'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: insured_value_gbp
+
+	column 'Gross Tonnage'
+		dataType: decimal
+		isHidden
+		summarizeBy: none
+		sourceColumn: gross_tonnage
+
+	column 'Gold Run ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_run_id
+
+	column 'Gold Timestamp'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_timestamp
+
+	partition 'Policy Exposures' = entity
+		mode: directLake
+		source
+			entityName: marine_fact_policy
+			schemaName: gold
+			expressionSource: 'DirectLake - Marine_Gold_Model'
+

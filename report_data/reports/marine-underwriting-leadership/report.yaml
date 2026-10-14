@@ -1,0 +1,188 @@
+# Report plan for scripts/pbir_build.py. Approved spec: _brief/report-spec.md
+name: Marine Underwriting Leadership
+model: {workspace: DataSonic 3, name: Marine_Gold_Model, id: dcd787e0-dd7d-47fd-bb3d-af3669727011}
+
+report_measures:
+  # Portfolio (Policy Exposures): counts through the fact so the Broker type / Currency slicers apply
+  - {table: Policy Exposures, name: Policies, type: Integer, format: "#,##0", dax: "DISTINCTCOUNT('Policy Exposures'[Policy Number])"}
+  - {table: Policy Exposures, name: Active Policies, type: Integer, format: "#,##0",
+     dax: "CALCULATE(DISTINCTCOUNT('Policy Exposures'[Policy Number]), 'Policy'[Policy Status] = \"Active\")"}
+  - {table: Policy Exposures, name: GWP (m), format: "#,##0.0", dax: "DIVIDE([Total Premium], 1000000)"}
+  - {table: Policy Exposures, name: Limit (m), format: "#,##0", dax: "DIVIDE([Total Limit], 1000000)"}
+  - {table: Policy Exposures, name: Insured Value GBP (m), format: "#,##0", dax: "DIVIDE([Total Insured Value (GBP)], 1000000)"}
+  # Claims (Claim Vessels)
+  - {table: Claim Vessels, name: Claims, type: Integer, format: "#,##0", dax: "DISTINCTCOUNT('Claim Vessels'[Claim Number])"}
+  - {table: Claim Vessels, name: Open Claims, type: Integer, format: "#,##0",
+     dax: "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[Is Open Claim] = TRUE())"}
+  - {table: Claim Vessels, name: Claims Notified, type: Integer, format: "#,##0",
+     dax: "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), USERELATIONSHIP('Claim Vessels'[Notification Date Key], 'Date'[Date Key]))"}
+  - {table: Claim Vessels, name: OS Reserve (m), format: "#,##0.0", dax: "DIVIDE([Total Outstanding], 1000000)"}
+  - {table: Claim Vessels, name: Paid (m), format: "#,##0.0", dax: "DIVIDE([Total Paid], 1000000)"}
+  - {table: Claim Vessels, name: Reporting Lag (days), format: "#,##0.0", dax: "[Average Claim Reporting Lag (Days)]"}
+  # Not an earned loss ratio: incurred / written premium, premium taken in the same currency as the claims in context
+  - {table: Claim Vessels, name: Incurred to Written, format: "#,##0%",
+     dax: "VAR ccy = SELECTEDVALUE('Claim Vessels'[Claim Currency]) RETURN IF(NOT ISBLANK(ccy), DIVIDE([Total Incurred], CALCULATE([Total Premium], 'Policy Exposures'[Currency] = ccy)))"}
+
+  # Same ratio on a Date[Year] axis read as year of account (Date[Year] is only the label; the model formats
+  # Policy[Year of Account] as #,##0, so it would show 2,020)
+  - {table: Claim Vessels, name: Incurred to Written by YoA, format: "#,##0%",
+     dax: "VAR ccy = CALCULATE(SELECTEDVALUE('Claim Vessels'[Claim Currency]), REMOVEFILTERS('Date')) VAR yrs = VALUES('Date'[Year]) RETURN IF(NOT ISBLANK(ccy), DIVIDE(CALCULATE([Total Incurred], REMOVEFILTERS('Date'), TREATAS(yrs, 'Policy'[Year of Account])), CALCULATE([Total Premium], REMOVEFILTERS('Date'), TREATAS(yrs, 'Policy'[Year of Account]), 'Policy Exposures'[Currency] = ccy)))"}
+
+pages:
+  - name: Portfolio
+    title: Hull & Machinery writes almost 40% of GWP, and fewer than 1 in 10 policies are still active
+    subtitle: "Marine policies · GWP and limit in the selected currency (no FX) · insured value in GBP for those policies · year of account from 2019 (1 policy with no year excluded from the year views)"
+    regions:
+      header: [1, 1, 9, 2]
+      filters: [9, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      products: [1, 4, 5, 9]
+      years: [5, 4, 9, 9]
+      status: [9, 4, 13, 9]
+      product_table: [1, 9, 7, 13]
+      year_table: [7, 9, 13, 13]
+    visuals:
+      - {kind: slicer, id: currency, region: filters, slot: 1, of: 2, field: "Policy Exposures[Currency]", label: Currency, single: true, default: GBP}
+      - {kind: slicer, id: broker_type, region: filters, slot: 2, of: 2, field: "Broker[Broker Type]", label: Broker type}
+      - kind: card
+        id: kpis
+        region: kpis
+        accent: "Policy Exposures[Total Premium]"
+        alt: "Five headline portfolio KPIs: policies, active policies, GWP, total limit and insured value in GBP."
+        values:
+          - {field: "Policy Exposures[Policies]", label: Policies, exact: true}
+          - {field: "Policy Exposures[Active Policies]", label: Active policies, exact: true}
+          - {field: "Policy Exposures[Total Premium]", label: GWP}
+          - {field: "Policy Exposures[Total Limit]", label: Total limit}
+          - {field: "Policy Exposures[Total Insured Value (GBP)]", label: Insured value (GBP)}
+      - kind: bar
+        id: gwp_by_product
+        region: products
+        title: GWP by product
+        alt: "Bar chart of GWP by product, largest first; Hull & Machinery is largest at about 39% of the total."
+        category: "Policy[Product]"
+        category_label: Product
+        values: [{field: "Policy Exposures[Total Premium]", label: GWP}]
+      - kind: column
+        id: gwp_by_yoa
+        region: years
+        title: GWP by year of account
+        alt: "Column chart of GWP by year of account from 2019; broadly flat from 2020 to 2025, with 2026 and 2027 only partly written."
+        category: "Date[Year]"
+        category_label: Year of account
+        sort: category_asc
+        filters: [{field: "Date[Year]", op: ">=", value: 2019}]
+        values: [{field: "Policy Exposures[Total Premium]", label: GWP}]
+      - kind: bar
+        id: status
+        region: status
+        title: Policies by status
+        alt: "Bar chart of policy count by status; most policies are expired, then cancelled, then active and lapsed."
+        category: "Policy[Policy Status]"
+        category_label: Status
+        values: [{field: "Policy Exposures[Policies]", label: Policies}]
+      - kind: matrix
+        id: product_table
+        region: product_table
+        title: Portfolio by product (highest GWP first)
+        alt: "Table of products sorted by GWP, with policies, GWP, total limit and insured value in millions."
+        rows: [{field: "Policy[Product]", label: Product}]
+        sort_by: "Policy Exposures[GWP (m)]"
+        values:
+          - {field: "Policy Exposures[Policies]", label: Policies}
+          - {field: "Policy Exposures[GWP (m)]", label: GWP (m)}
+          - {field: "Policy Exposures[Limit (m)]", label: Limit (m)}
+          - {field: "Policy Exposures[Insured Value GBP (m)]", label: Insured value £ (m)}
+      - kind: matrix
+        id: year_table
+        region: year_table
+        title: Portfolio by year of account
+        alt: "Table of years of account from 2019, with policies, GWP, total limit and insured value in millions."
+        rows: [{field: "Date[Year]", label: Year of account}]
+        sort: category_asc
+        filters: [{field: "Date[Year]", op: ">=", value: 2019}]
+        values:
+          - {field: "Policy Exposures[Policies]", label: Policies}
+          - {field: "Policy Exposures[GWP (m)]", label: GWP (m)}
+          - {field: "Policy Exposures[Limit (m)]", label: Limit (m)}
+          - {field: "Policy Exposures[Insured Value GBP (m)]", label: Insured value £ (m)}
+
+  - name: Claims vs portfolio
+    title: Hull & Machinery holds a third of the OS reserve, and notifications peaked in Q3 2025
+    subtitle: "Marine claims in the selected currency (no FX) · LOB = product · incurred-to-written = incurred ÷ written premium in the same currency, not an earned loss ratio"
+    regions:
+      header: [1, 1, 9, 2]
+      filters: [9, 1, 13, 2]
+      kpis: [1, 2, 13, 4]
+      lob: [1, 4, 7, 8]
+      ratio: [7, 4, 13, 8]
+      notified: [1, 8, 4, 13]
+      lag: [4, 8, 8, 13]
+      execs: [8, 8, 13, 13]
+    visuals:
+      - {kind: slicer, id: currency, region: filters, slot: 1, of: 2, field: "Claim Vessels[Claim Currency]", label: Currency, single: true, default: GBP}
+      - {kind: slicer, id: broker_type, region: filters, slot: 2, of: 2, field: "Broker[Broker Type]", label: Broker type}
+      - kind: card
+        id: kpis
+        region: kpis
+        accent: "Claim Vessels[Total Outstanding]"
+        alt: "Six headline claims KPIs: claims, open claims, OS reserve, paid, average reporting lag and incurred-to-written ratio."
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims, exact: true}
+          - {field: "Claim Vessels[Open Claims]", label: Open claims, exact: true}
+          - {field: "Claim Vessels[Total Outstanding]", label: OS reserve}
+          - {field: "Claim Vessels[Total Paid]", label: Paid}
+          - {field: "Claim Vessels[Reporting Lag (days)]", label: Avg reporting lag (days)}
+          - {field: "Claim Vessels[Incurred to Written]", label: Incurred-to-written}
+      - kind: clustered_column
+        id: os_paid_by_lob
+        region: lob
+        title: OS reserve and paid by LOB (product)
+        alt: "Clustered column chart of OS reserve and paid by product, sorted by OS reserve; Hull & Machinery is largest on both."
+        category: "Policy[Product]"
+        category_label: LOB
+        sort_by: "Claim Vessels[Total Outstanding]"
+        values:
+          - {field: "Claim Vessels[Total Outstanding]", label: OS reserve}
+          - {field: "Claim Vessels[Total Paid]", label: Paid}
+      - kind: column
+        id: ratio_by_yoa
+        region: ratio
+        title: Incurred-to-written ratio by year of account (not an earned loss ratio)
+        alt: "Column chart of incurred divided by written premium by year of account from 2019; the ratio is in the thousands of percent every year because the data is synthetic."
+        category: "Date[Year]"
+        category_label: Year of account
+        sort: category_asc
+        filters: [{field: "Date[Year]", op: ">=", value: 2019}]
+        values: [{field: "Claim Vessels[Incurred to Written by YoA]", label: Incurred-to-written}]
+      - kind: column
+        id: notified_2025
+        region: notified
+        title: Claims notified per quarter, 2025
+        alt: "Column chart of claims notified in each quarter of 2025 by notification date; Q3 is highest."
+        category: "Date[Quarter]"
+        category_label: Quarter
+        sort: category_asc
+        filters: [{field: "Date[Year]", op: "=", value: 2025}]
+        values: [{field: "Claim Vessels[Claims Notified]", label: Claims notified}]
+      - kind: bar
+        id: lag_by_cause
+        region: lag
+        title: Average reporting lag by cause of loss (days)
+        alt: "Bar chart of average days from loss to notification by cause of loss, longest first; every cause sits between about 21 and 24 days."
+        category: "Claim[Cause of Loss]"
+        category_label: Cause of loss
+        filters: [{field: "Claim[Cause of Loss]", op: "<>", value: ""}]
+        values: [{field: "Claim Vessels[Reporting Lag (days)]", label: Avg lag (days)}]
+      - kind: matrix
+        id: execs
+        region: execs
+        title: Claims by policy executive (most claims first)
+        alt: "Table of policy executives sorted by number of claims, with open claims, OS reserve and paid in millions."
+        rows: [{field: "Policy[Policy Executive]", label: Policy executive}]
+        sort_by: "Claim Vessels[Claims]"
+        values:
+          - {field: "Claim Vessels[Claims]", label: Claims}
+          - {field: "Claim Vessels[Open Claims]", label: Open}
+          - {field: "Claim Vessels[OS Reserve (m)]", label: OS reserve (m)}
+          - {field: "Claim Vessels[Paid (m)]", label: Paid (m)}

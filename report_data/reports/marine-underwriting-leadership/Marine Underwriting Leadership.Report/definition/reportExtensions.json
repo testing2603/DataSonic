@@ -1,0 +1,94 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/reportExtension/1.0.0/schema.json",
+  "name": "extension",
+  "entities": [
+    {
+      "name": "Policy Exposures",
+      "measures": [
+        {
+          "name": "Policies",
+          "dataType": "Integer",
+          "expression": "DISTINCTCOUNT('Policy Exposures'[Policy Number])",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Active Policies",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Policy Exposures'[Policy Number]), 'Policy'[Policy Status] = \"Active\")",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "GWP (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Premium], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Limit (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Limit], 1000000)",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Insured Value GBP (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Insured Value (GBP)], 1000000)",
+          "formatString": "#,##0"
+        }
+      ]
+    },
+    {
+      "name": "Claim Vessels",
+      "measures": [
+        {
+          "name": "Claims",
+          "dataType": "Integer",
+          "expression": "DISTINCTCOUNT('Claim Vessels'[Claim Number])",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Open Claims",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), 'Claim'[Is Open Claim] = TRUE())",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "Claims Notified",
+          "dataType": "Integer",
+          "expression": "CALCULATE(DISTINCTCOUNT('Claim Vessels'[Claim Number]), USERELATIONSHIP('Claim Vessels'[Notification Date Key], 'Date'[Date Key]))",
+          "formatString": "#,##0"
+        },
+        {
+          "name": "OS Reserve (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Outstanding], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Paid (m)",
+          "dataType": "Double",
+          "expression": "DIVIDE([Total Paid], 1000000)",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Reporting Lag (days)",
+          "dataType": "Double",
+          "expression": "[Average Claim Reporting Lag (Days)]",
+          "formatString": "#,##0.0"
+        },
+        {
+          "name": "Incurred to Written",
+          "dataType": "Double",
+          "expression": "VAR ccy = SELECTEDVALUE('Claim Vessels'[Claim Currency]) RETURN IF(NOT ISBLANK(ccy), DIVIDE([Total Incurred], CALCULATE([Total Premium], 'Policy Exposures'[Currency] = ccy)))",
+          "formatString": "#,##0%"
+        },
+        {
+          "name": "Incurred to Written by YoA",
+          "dataType": "Double",
+          "expression": "VAR ccy = CALCULATE(SELECTEDVALUE('Claim Vessels'[Claim Currency]), REMOVEFILTERS('Date')) VAR yrs = VALUES('Date'[Year]) RETURN IF(NOT ISBLANK(ccy), DIVIDE(CALCULATE([Total Incurred], REMOVEFILTERS('Date'), TREATAS(yrs, 'Policy'[Year of Account])), CALCULATE([Total Premium], REMOVEFILTERS('Date'), TREATAS(yrs, 'Policy'[Year of Account]), 'Policy Exposures'[Currency] = ccy)))",
+          "formatString": "#,##0%"
+        }
+      ]
+    }
+  ]
+}

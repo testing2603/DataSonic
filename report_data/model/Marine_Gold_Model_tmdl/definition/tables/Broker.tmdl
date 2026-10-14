@@ -1,0 +1,84 @@
+/// One row per broker_id (TOBA master, MAR2-14a) (G2), with an UNKNOWN member. gold.marine_dim_broker.
+table Broker
+
+	/// Number of brokers, excluding the UNKNOWN member.
+	measure '# Brokers' = CALCULATE(COUNTROWS('Broker'), 'Broker'[Broker ID] <> "UNKNOWN")
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Broker Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: broker_sk
+
+	column 'Broker ID'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: broker_id
+
+	column 'Broker Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: broker_name
+
+	column 'Gold Run ID'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_run_id
+
+	column 'Gold Timestamp'
+		dataType: dateTime
+		isHidden
+		formatString: yyyy/mm/dd hh:nn:ss
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: _gold_timestamp
+
+	column 'Commission %'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: commission_pct
+
+	column 'Date of Onboarding'
+		dataType: dateTime
+		formatString: yyyy/mm/dd hh:nn:ss
+		summarizeBy: none
+		sourceColumn: date_of_onboarding
+
+	column 'FCA Registration Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: fca_registration_number
+
+	column 'Delegated Authority'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: delegated_authority
+
+	column 'Longevity Years'
+		dataType: int64
+		formatString: #,##0
+		summarizeBy: none
+		sourceColumn: longevity_years
+
+	column 'Broker Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: broker_type
+
+	column 'Market Access'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: market_access
+
+	partition Broker = entity
+		mode: directLake
+		source
+			entityName: marine_dim_broker
+			schemaName: gold
+			expressionSource: 'DirectLake - Marine_Gold_Model'
+
