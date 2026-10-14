@@ -50,6 +50,11 @@ def run_query_with_columns(statement: str, params: sql.Params = None,
     return sql.query_with_columns(partial(connect, database), statement, params)
 
 
+def execute(statement: str, params: sql.Params = None, database: str | None = None) -> int:
+    """INSERT/UPDATE/DELETE against a Fabric warehouse; commits and returns affected row count."""
+    return sql.execute(partial(connect, database), statement, params)
+
+
 def check():
     """Fail fast at startup if the endpoint can't be reached."""
     run_query('SELECT 1 AS ok')

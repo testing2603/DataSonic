@@ -11,11 +11,23 @@ interface IngestionObject {
 type AuditStatus = 'Success' | 'Failed' | 'Processing'
 
 interface AuditRecord {
-  id: string
-  objectName: string
-  startedAt: string
-  status: AuditStatus
-  message: string
+  auditId: string
+  pipelineRunId: string
+  pipelineId: string
+  objectId: string
+  sourceId: string
+  runStatus: AuditStatus
+  startTime: string
+  endTime: string
+  recordsExtracted: string
+  recordsWritten: string
+  failures: string
+  failureReason: string
+  sourceName: string
+  targetPath: string
+  dateCreated: string
+  retryCount: string
+  functionInstanceId: string
 }
 
 interface AddTableForm {
@@ -42,13 +54,78 @@ const emptyAddTableForm: AddTableForm = {
   cdrConcept: '',
 }
 
+interface SourceConfigForm {
+  sourceId: string
+  sourceName: string
+  sourceType: string
+  connectionDetailsJson: string
+  loadType: string
+  connectionKv: string
+  maxRetryAttemptsSource: string
+  isActive: IngestionStatus
+  ownedByTeam: string
+}
+
+const emptySourceConfigForm: SourceConfigForm = {
+  sourceId: '',
+  sourceName: '',
+  sourceType: '',
+  connectionDetailsJson: '',
+  loadType: '',
+  connectionKv: '',
+  maxRetryAttemptsSource: '',
+  isActive: 'Y',
+  ownedByTeam: 'data engineering',
+}
+
+interface PipelineConfigForm {
+  pipelineId: string
+  pipelineName: string
+  maxConcurrentRuns: string
+  activeFlag: IngestionStatus
+  notificationEmail: string
+  alertOnEmpty: IngestionStatus
+  iterateOverAllObjects: IngestionStatus
+}
+
+const emptyPipelineConfigForm: PipelineConfigForm = {
+  pipelineId: '',
+  pipelineName: '',
+  maxConcurrentRuns: '',
+  activeFlag: 'Y',
+  notificationEmail: '',
+  alertOnEmpty: 'N',
+  iterateOverAllObjects: 'N',
+}
+
+type AddTableTab = 'object' | 'source' | 'pipeline'
+
+const AUDIT_COLS: { key: string; label: string; mono?: boolean }[] = [
+  { key: 'auditId', label: 'Audit ID', mono: true },
+  { key: 'pipelineRunId', label: 'Pipeline Run ID', mono: true },
+  { key: 'pipelineId', label: 'Pipeline ID' },
+  { key: 'objectId', label: 'Object ID' },
+  { key: 'sourceId', label: 'Source ID' },
+  { key: 'runStatus', label: 'Status' },
+  { key: 'startTime', label: 'Start Time' },
+  { key: 'endTime', label: 'End Time' },
+  { key: 'recordsExtracted', label: 'Records Extracted' },
+  { key: 'recordsWritten', label: 'Records Written' },
+  { key: 'failureReason', label: 'Failure Reason' },
+  { key: 'sourceName', label: 'Source Name' },
+  { key: 'targetPath', label: 'Target Path' },
+  { key: 'dateCreated', label: 'Date Created' },
+  { key: 'retryCount', label: 'Retry Count' },
+  { key: 'functionInstanceId', label: 'Function Instance ID', mono: true },
+]
+
 const frameworkAreas = [
   {
     label: 'Execution History',
     description: 'Review framework runs, statuses, and execution details.',
   },
   {
-    label: 'Add Tables',
+    label: 'Add Record',
     description: 'Register new source tables and their metadata configuration.',
   },
   {
@@ -93,19 +170,14 @@ function normalizeObject(row: Record<string, unknown>): IngestionObject | null {
   return { name: rawName.trim(), status, initialStatus: status }
 }
 
-function normalizeAuditRecord(
-  row: Record<string, unknown>,
-  index: number,
-): AuditRecord {
-  const rawStatus = String(
-    row.status ??
-      row.STATUS ??
-      row.run_status ??
-      row.RUN_STATUS ??
-      row.execution_status ??
-      '',
-  ).toUpperCase()
-  const status: AuditStatus =
+function str(val: unknown): string {
+  if (val === null || val === undefined) return '—'
+  return String(val)
+}
+
+function normalizeAuditRecord(row: Record<string, unknown>): AuditRecord {
+  const rawStatus = String(row.run_status ?? row.RUN_STATUS ?? '').toUpperCase()
+  const runStatus: AuditStatus =
     rawStatus.includes('SUCCESS') || rawStatus.includes('COMPLETED')
       ? 'Success'
       : rawStatus.includes('FAIL') || rawStatus.includes('ERROR')
@@ -113,39 +185,23 @@ function normalizeAuditRecord(
         : 'Processing'
 
   return {
-    id: String(
-      row.run_id ??
-        row.RUN_ID ??
-        row.audit_id ??
-        row.AUDIT_ID ??
-        row.execution_id ??
-        `RUN-${index + 1}`,
-    ),
-    objectName: String(
-      row.object_name ??
-        row.OBJECT_NAME ??
-        row.pipeline_name ??
-        row.PIPELINE_NAME ??
-        '—',
-    ),
-    startedAt: String(
-      row.started_at ??
-        row.STARTED_AT ??
-        row.start_time ??
-        row.START_TIME ??
-        row.created_at ??
-        row.CREATED_AT ??
-        '',
-    ),
-    status,
-    message: String(
-      row.message ??
-        row.MESSAGE ??
-        row.error_message ??
-        row.ERROR_MESSAGE ??
-        row.details ??
-        '—',
-    ),
+    auditId: str(row.AUDIT_ID ?? row.audit_id),
+    pipelineRunId: str(row.pipeline_run_id ?? row.PIPELINE_RUN_ID),
+    pipelineId: str(row.pipeline_id ?? row.PIPELINE_ID),
+    objectId: str(row.object_id ?? row.OBJECT_ID),
+    sourceId: str(row.source_id ?? row.SOURCE_ID),
+    runStatus,
+    startTime: str(row.start_time ?? row.START_TIME),
+    endTime: str(row.end_time ?? row.END_TIME),
+    recordsExtracted: str(row.records_extracted ?? row.RECORDS_EXTRACTED),
+    recordsWritten: str(row.records_written ?? row.RECORDS_WRITTEN),
+    failures: str(row.Failures ?? row.failures ?? row.FAILURES),
+    failureReason: str(row.FailureReason ?? row.failureReason ?? row.FAILUREREASON),
+    sourceName: str(row.source_name ?? row.SOURCE_NAME),
+    targetPath: str(row.target_path ?? row.TARGET_PATH),
+    dateCreated: str(row.date_created ?? row.DATE_CREATED),
+    retryCount: str(row.retry_count ?? row.RETRY_COUNT),
+    functionInstanceId: str(row.function_instance_id ?? row.FUNCTION_INSTANCE_ID),
   }
 }
 
@@ -157,6 +213,8 @@ function formatAuditDate(value: string): string {
 }
 
 export default function MDFPage() {
+  const [showPipelineDialog, setShowPipelineDialog] = useState(false)
+  const [pipelineForm, setPipelineForm] = useState({ pipelineId: 'PL_Full_Load', pipelineRetry: '3' })
   const [executingPipeline, setExecutingPipeline] = useState(false)
   const [pipelineExecutionMessage, setPipelineExecutionMessage] = useState('')
   const [pipelineExecutionError, setPipelineExecutionError] = useState('')
@@ -165,11 +223,18 @@ export default function MDFPage() {
   const [auditLoading, setAuditLoading] = useState(false)
   const [auditError, setAuditError] = useState('')
   const [showAddTable, setShowAddTable] = useState(false)
+  const [addTableTab, setAddTableTab] = useState<AddTableTab>('object')
   const [addTableForm, setAddTableForm] =
     useState<AddTableForm>(emptyAddTableForm)
+  const [sourceConfigForm, setSourceConfigForm] =
+    useState<SourceConfigForm>(emptySourceConfigForm)
+  const [pipelineConfigForm, setPipelineConfigForm] =
+    useState<PipelineConfigForm>(emptyPipelineConfigForm)
   const [addingTable, setAddingTable] = useState(false)
   const [addTableError, setAddTableError] = useState('')
   const [addTableSuccess, setAddTableSuccess] = useState('')
+  const [availableSources, setAvailableSources] = useState<{ source_id: string; source_name: string }[]>([])
+  const [sourcesLoading, setSourcesLoading] = useState(false)
   const [showUpdateIngestion, setShowUpdateIngestion] = useState(false)
   const [objects, setObjects] = useState<IngestionObject[]>([])
   const [loading, setLoading] = useState(false)
@@ -181,6 +246,13 @@ export default function MDFPage() {
     (object) => object.status !== object.initialStatus,
   )
 
+  function openPipelineDialog() {
+    setPipelineForm({ pipelineId: 'PL_Full_Load', pipelineRetry: '3' })
+    setPipelineExecutionMessage('')
+    setPipelineExecutionError('')
+    setShowPipelineDialog(true)
+  }
+
   async function executePipeline() {
     if (executingPipeline) return
     setExecutingPipeline(true)
@@ -191,7 +263,10 @@ export default function MDFPage() {
       const response = await fetch('/api/mdf/execute-pipeline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          pipeline_id: pipelineForm.pipelineId,
+          pipeline_retry: parseInt(pipelineForm.pipelineRetry, 10) || 3,
+        }),
       })
       const body = await response.json().catch(() => null)
       if (!response.ok) {
@@ -204,6 +279,7 @@ export default function MDFPage() {
       setPipelineExecutionMessage(
         body?.message ?? 'Pipeline execution started successfully.',
       )
+      setShowPipelineDialog(false)
     } catch (executionError) {
       setPipelineExecutionError(
         executionError instanceof Error
@@ -229,13 +305,7 @@ export default function MDFPage() {
       }
 
       const normalized = readObjects(await response.json())
-        .map(normalizeAuditRecord)
-        .sort((a, b) => {
-          const aTime = new Date(a.startedAt).getTime()
-          const bTime = new Date(b.startedAt).getTime()
-          return (Number.isNaN(bTime) ? 0 : bTime) -
-            (Number.isNaN(aTime) ? 0 : aTime)
-        })
+        .map((row, _i) => normalizeAuditRecord(row))
       setAuditRecords(normalized)
     } catch (loadError) {
       setAuditRecords([])
@@ -258,11 +328,29 @@ export default function MDFPage() {
     setShowExecutionHistory(false)
   }
 
+  async function loadSources() {
+    setSourcesLoading(true)
+    try {
+      const response = await fetch('/api/mdf/sources')
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      setAvailableSources(body.sources ?? [])
+    } catch {
+      setAvailableSources([])
+    } finally {
+      setSourcesLoading(false)
+    }
+  }
+
   function openAddTable() {
+    setAddTableTab('object')
     setAddTableForm(emptyAddTableForm)
+    setSourceConfigForm(emptySourceConfigForm)
+    setPipelineConfigForm(emptyPipelineConfigForm)
     setAddTableError('')
     setAddTableSuccess('')
     setShowAddTable(true)
+    void loadSources()
   }
 
   function closeAddTable() {
@@ -328,6 +416,132 @@ export default function MDFPage() {
         submitError instanceof Error
           ? submitError.message
           : 'Could not add the table to Fabric.',
+      )
+    } finally {
+      setAddingTable(false)
+    }
+  }
+
+  function updateSourceConfigField<K extends keyof SourceConfigForm>(
+    field: K,
+    value: SourceConfigForm[K],
+  ) {
+    setSourceConfigForm((current) => ({ ...current, [field]: value }))
+    setAddTableError('')
+    setAddTableSuccess('')
+  }
+
+  async function submitSourceConfig(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (addingTable) return
+
+    setAddingTable(true)
+    setAddTableError('')
+    setAddTableSuccess('')
+
+    const nullable = (value: string) => {
+      const normalized = value.trim()
+      return normalized || null
+    }
+
+    try {
+      const response = await fetch('/api/mdf/source-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_id: nullable(sourceConfigForm.sourceId),
+          source_name: nullable(sourceConfigForm.sourceName),
+          source_type: nullable(sourceConfigForm.sourceType),
+          connection_details_json: nullable(sourceConfigForm.connectionDetailsJson),
+          load_type: nullable(sourceConfigForm.loadType),
+          connection_kv: nullable(sourceConfigForm.connectionKv),
+          max_retry_attempts_source: sourceConfigForm.maxRetryAttemptsSource.trim()
+            ? Number(sourceConfigForm.maxRetryAttemptsSource)
+            : null,
+          is_active: sourceConfigForm.isActive,
+          owned_by_team: sourceConfigForm.ownedByTeam.trim() || 'data engineering',
+        }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(
+          body?.error ??
+            body?.message ??
+            `Could not add the source config (HTTP ${response.status}).`,
+        )
+      }
+
+      setAddTableSuccess(
+        `${sourceConfigForm.sourceName.trim() || sourceConfigForm.sourceId.trim()} was added successfully.`,
+      )
+      setSourceConfigForm(emptySourceConfigForm)
+    } catch (submitError) {
+      setAddTableError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Could not add the source config to Fabric.',
+      )
+    } finally {
+      setAddingTable(false)
+    }
+  }
+
+  function updatePipelineConfigField<K extends keyof PipelineConfigForm>(
+    field: K,
+    value: PipelineConfigForm[K],
+  ) {
+    setPipelineConfigForm((current) => ({ ...current, [field]: value }))
+    setAddTableError('')
+    setAddTableSuccess('')
+  }
+
+  async function submitPipelineConfig(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (addingTable) return
+
+    setAddingTable(true)
+    setAddTableError('')
+    setAddTableSuccess('')
+
+    const nullable = (value: string) => {
+      const normalized = value.trim()
+      return normalized || null
+    }
+
+    try {
+      const response = await fetch('/api/mdf/pipeline-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pipeline_id: nullable(pipelineConfigForm.pipelineId),
+          pipeline_name: nullable(pipelineConfigForm.pipelineName),
+          max_concurrent_runs: pipelineConfigForm.maxConcurrentRuns.trim()
+            ? Number(pipelineConfigForm.maxConcurrentRuns)
+            : null,
+          active_flag: pipelineConfigForm.activeFlag,
+          notification_email: nullable(pipelineConfigForm.notificationEmail),
+          alert_on_empty: pipelineConfigForm.alertOnEmpty,
+          iterate_over_all_objects: pipelineConfigForm.iterateOverAllObjects,
+        }),
+      })
+      if (!response.ok) {
+        const body = await response.json().catch(() => null)
+        throw new Error(
+          body?.error ??
+            body?.message ??
+            `Could not add the pipeline config (HTTP ${response.status}).`,
+        )
+      }
+
+      setAddTableSuccess(
+        `${pipelineConfigForm.pipelineName.trim() || pipelineConfigForm.pipelineId.trim()} was added successfully.`,
+      )
+      setPipelineConfigForm(emptyPipelineConfigForm)
+    } catch (submitError) {
+      setAddTableError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Could not add the pipeline config to Fabric.',
       )
     } finally {
       setAddingTable(false)
@@ -434,9 +648,10 @@ export default function MDFPage() {
   }
 
   useEffect(() => {
-    if (!showExecutionHistory && !showUpdateIngestion && !showAddTable) return
+    if (!showExecutionHistory && !showUpdateIngestion && !showAddTable && !showPipelineDialog) return
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
+      if (showPipelineDialog && !executingPipeline) setShowPipelineDialog(false)
       if (showExecutionHistory) closeExecutionHistory()
       if (showAddTable) closeAddTable()
       if (showUpdateIngestion) closeUpdateIngestion()
@@ -467,7 +682,7 @@ export default function MDFPage() {
             </div>
             <button
               type="button"
-              onClick={() => void executePipeline()}
+              onClick={openPipelineDialog}
               disabled={executingPipeline}
               className="mt-1 inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#1683FF]/50 bg-[#1683FF] px-4 py-2.5 text-[12px] font-semibold text-white shadow-[0_8px_24px_rgba(22,131,255,0.22)] transition-all hover:-translate-y-0.5 hover:bg-[#2D91FF] hover:shadow-[0_12px_30px_rgba(22,131,255,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -505,7 +720,7 @@ export default function MDFPage() {
         <div className="grid gap-5 md:grid-cols-3">
           {frameworkAreas.map((area, index) => {
             const isExecutionHistory = area.label === 'Execution History'
-            const isAddTable = area.label === 'Add Tables'
+            const isAddTable = area.label === 'Add Record'
             const isUpdateIngestion = area.label === 'Update Ingestion'
             const isInteractive =
               isExecutionHistory || isAddTable || isUpdateIngestion
@@ -604,6 +819,108 @@ export default function MDFPage() {
         </div>
       </div>
 
+      {showPipelineDialog && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#020A14]/80 p-6 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !executingPipeline) setShowPipelineDialog(false)
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md overflow-hidden rounded-2xl border border-[#214260] bg-[#0A1B31] shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+          >
+            <div className="flex items-start justify-between border-b border-[#18334F] px-6 py-5">
+              <div>
+                <div className="text-[17px] font-semibold text-[#F4F8FC]">Execute Pipeline</div>
+                <p className="mt-1 text-[12px] text-[#8FA7BF]">
+                  Configure and run DA_Orch_PL_Parent.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPipelineDialog(false)}
+                disabled={executingPipeline}
+                aria-label="Close"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#214260] text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M2 2l10 10M12 2L2 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4 p-6">
+              {pipelineExecutionError && (
+                <div className="rounded-lg border border-[#FF647C]/30 bg-[#492431]/70 px-4 py-3 text-[12px] text-[#FF8A9C]">
+                  {pipelineExecutionError}
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="pl-pipeline-id" className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                  Pipeline ID <span className="ml-1 text-[#2DA8FF]">*</span>
+                </label>
+                <select
+                  id="pl-pipeline-id"
+                  value={pipelineForm.pipelineId}
+                  onChange={(e) => setPipelineForm((f) => ({ ...f, pipelineId: e.target.value }))}
+                  disabled={executingPipeline}
+                  className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none disabled:opacity-50"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238FA7BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                >
+                  <option value="PL_Full_Load">PL_Full_Load</option>
+                  <option value="PL_Incremental_Load">PL_Incremental_Load</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="pl-retry" className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                  Pipeline Retry <span className="ml-1 text-[#2DA8FF]">*</span>
+                </label>
+                <input
+                  id="pl-retry"
+                  type="number"
+                  min={0}
+                  max={10}
+                  value={pipelineForm.pipelineRetry}
+                  onChange={(e) => setPipelineForm((f) => ({ ...f, pipelineRetry: e.target.value }))}
+                  disabled={executingPipeline}
+                  className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-[#18334F] bg-[#07182B]/50 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setShowPipelineDialog(false)}
+                disabled={executingPipeline}
+                className="rounded-lg border border-[#214260] px-4 py-2 text-[12px] font-semibold text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void executePipeline()}
+                disabled={executingPipeline}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1683FF] px-5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#2D91FF] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {executingPipeline ? (
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                ) : (
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 2.5l7 4.5-7 4.5v-9z" />
+                  </svg>
+                )}
+                {executingPipeline ? 'Executing…' : 'Execute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showExecutionHistory && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-[#020A14]/80 p-6 backdrop-blur-sm"
@@ -615,7 +932,7 @@ export default function MDFPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="execution-history-title"
-            className="flex max-h-[86vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[#214260] bg-[#0A1B31] shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+            className="flex max-h-[90vh] w-full max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-[#214260] bg-[#0A1B31] shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
           >
             <div className="flex items-start justify-between border-b border-[#18334F] px-6 py-5">
               <div>
@@ -673,27 +990,25 @@ export default function MDFPage() {
                 </div>
               )}
 
-              <div className="overflow-hidden rounded-xl border border-[#214260]">
-                <table className="w-full">
+              <div className="overflow-x-auto rounded-xl border border-[#214260]">
+                <table className="w-full min-w-[1400px]">
                   <thead className="sticky top-0 z-10 bg-[#07182B]">
                     <tr className="border-b border-[#214260]">
-                      {['Run ID', 'Object / Pipeline', 'Started At', 'Status', 'Details'].map(
-                        (heading) => (
-                          <th
-                            key={heading}
-                            className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8FA7BF]"
-                          >
-                            {heading}
-                          </th>
-                        ),
-                      )}
+                      {AUDIT_COLS.map((col) => (
+                        <th
+                          key={col.key}
+                          className="whitespace-nowrap px-3 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[#8FA7BF]"
+                        >
+                          {col.label}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="bg-[#102B48]/60">
                     {auditLoading ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={AUDIT_COLS.length}
                           className="px-5 py-14 text-center text-[12px] text-[#8FA7BF]"
                         >
                           Loading audit logs from Fabric…
@@ -702,7 +1017,7 @@ export default function MDFPage() {
                     ) : auditRecords.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={AUDIT_COLS.length}
                           className="px-5 py-14 text-center text-[12px] text-[#8FA7BF]"
                         >
                           {auditError
@@ -713,27 +1028,35 @@ export default function MDFPage() {
                     ) : (
                       auditRecords.map((record, index) => (
                         <tr
-                          key={`${record.id}-${index}`}
+                          key={`${record.auditId}-${index}`}
                           className="border-b border-[#18334F] last:border-b-0 hover:bg-[#1683FF]/5"
                         >
-                          <td className="whitespace-nowrap px-4 py-3.5 font-mono text-[11px] font-medium text-[#2DA8FF]">
-                            {record.id}
-                          </td>
-                          <td className="px-4 py-3.5 text-[12px] font-medium text-[#E6EEF7]">
-                            {record.objectName}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3.5 text-[11px] text-[#8FA7BF]">
-                            {formatAuditDate(record.startedAt)}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <AuditStatusBadge status={record.status} />
-                          </td>
-                          <td
-                            className="max-w-64 truncate px-4 py-3.5 text-[11px] text-[#8FA7BF]"
-                            title={record.message}
-                          >
-                            {record.message}
-                          </td>
+                          {AUDIT_COLS.map((col) => {
+                            const value = record[col.key as keyof AuditRecord]
+                            if (col.key === 'runStatus') {
+                              return (
+                                <td key={col.key} className="px-3 py-3">
+                                  <AuditStatusBadge status={record.runStatus} />
+                                </td>
+                              )
+                            }
+                            if (col.key === 'startTime' || col.key === 'endTime' || col.key === 'dateCreated') {
+                              return (
+                                <td key={col.key} className="whitespace-nowrap px-3 py-3 text-[11px] text-[#8FA7BF]">
+                                  {formatAuditDate(value)}
+                                </td>
+                              )
+                            }
+                            return (
+                              <td
+                                key={col.key}
+                                className={`max-w-48 truncate px-3 py-3 text-[11px] ${col.mono ? 'font-mono font-medium text-[#2DA8FF]' : 'text-[#E6EEF7]'}`}
+                                title={value}
+                              >
+                                {value}
+                              </td>
+                            )
+                          })}
                         </tr>
                       ))
                     )}
@@ -758,39 +1081,71 @@ export default function MDFPage() {
             aria-labelledby="add-table-title"
             className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#214260] bg-[#0A1B31] shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
           >
-            <div className="flex items-start justify-between border-b border-[#18334F] px-6 py-5">
-              <div>
-                <div
-                  id="add-table-title"
-                  className="text-[17px] font-semibold text-[#F4F8FC]"
-                >
-                  Add Table
+            <div className="border-b border-[#18334F]">
+              <div className="flex items-start justify-between px-6 pt-5 pb-4">
+                <div>
+                  <div
+                    id="add-table-title"
+                    className="text-[17px] font-semibold text-[#F4F8FC]"
+                  >
+                    Add Record
+                  </div>
+                  <p className="mt-1 text-[12px] text-[#8FA7BF]">
+                    Register a new record in the Fabric metadata store.
+                  </p>
                 </div>
-                <p className="mt-1 text-[12px] text-[#8FA7BF]">
-                  Register a new object in the Fabric metadata table.
-                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeAddTable}
+                    disabled={addingTable}
+                    aria-label="Close add table"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#214260] text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 14 14"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    >
+                      <path d="M2 2l10 10M12 2L2 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={closeAddTable}
-                disabled={addingTable}
-                aria-label="Close add table"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#214260] text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                >
-                  <path d="M2 2l10 10M12 2L2 12" />
-                </svg>
-              </button>
+              <div className="flex gap-0 px-6">
+                {([
+                  { id: 'object' as AddTableTab, label: 'Object Config' },
+                  { id: 'source' as AddTableTab, label: 'Source Config' },
+                  { id: 'pipeline' as AddTableTab, label: 'Pipeline Config' },
+                ] as const).map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setAddTableTab(tab.id)
+                      setAddTableError('')
+                      setAddTableSuccess('')
+                    }}
+                    className={`relative px-4 py-2.5 text-[12px] font-semibold transition-colors ${
+                      addTableTab === tab.id
+                        ? 'text-[#2DA8FF]'
+                        : 'text-[#8FA7BF] hover:text-[#C4D4E5]'
+                    }`}
+                  >
+                    {tab.label}
+                    {addTableTab === tab.id && (
+                      <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-[#1683FF]" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {addTableTab === 'object' && (
             <form
               onSubmit={(event) => void submitAddTable(event)}
               className="flex min-h-0 flex-1 flex-col"
@@ -817,24 +1172,60 @@ export default function MDFPage() {
                     placeholder="e.g. OBJ-001"
                     required
                   />
-                  <FormField
-                    label="Source ID"
-                    value={addTableForm.sourceId}
-                    onChange={(value) =>
-                      updateAddTableField('sourceId', value)
-                    }
-                    placeholder="e.g. SRC-001"
-                    required
-                  />
-                  <FormField
-                    label="Pipeline ID"
-                    value={addTableForm.pipelineId}
-                    onChange={(value) =>
-                      updateAddTableField('pipelineId', value)
-                    }
-                    placeholder="e.g. PL-001"
-                    required
-                  />
+                  <div>
+                    <label
+                      htmlFor="add-table-source-id"
+                      className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]"
+                    >
+                      Source ID
+                      <span className="ml-1 text-[#2DA8FF]">*</span>
+                    </label>
+                    <select
+                      id="add-table-source-id"
+                      value={addTableForm.sourceId}
+                      onChange={(event) =>
+                        updateAddTableField('sourceId', event.target.value)
+                      }
+                      required
+                      disabled={sourcesLoading}
+                      className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none disabled:opacity-50"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238FA7BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                    >
+                      <option value="" disabled className="text-[#526B84]">
+                        {sourcesLoading ? 'Loading sources…' : 'Select a source'}
+                      </option>
+                      {availableSources.map((src) => (
+                        <option key={src.source_id} value={src.source_id}>
+                          {src.source_id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="add-table-pipeline-id"
+                      className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]"
+                    >
+                      Pipeline ID
+                      <span className="ml-1 text-[#2DA8FF]">*</span>
+                    </label>
+                    <select
+                      id="add-table-pipeline-id"
+                      value={addTableForm.pipelineId}
+                      onChange={(event) =>
+                        updateAddTableField('pipelineId', event.target.value)
+                      }
+                      required
+                      className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238FA7BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
+                    >
+                      <option value="" disabled className="text-[#526B84]">
+                        Select pipeline type
+                      </option>
+                      <option value="PL_Full_Load">PL_Full_Load</option>
+                      <option value="PL_Incremental_Load">PL_Incremental_Load</option>
+                    </select>
+                  </div>
                   <FormField
                     label="Object Name"
                     value={addTableForm.objectName}
@@ -923,14 +1314,6 @@ export default function MDFPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-lg border border-[#214260] bg-[#07182B]/60 px-4 py-3 text-[11px] leading-5 text-[#8FA7BF]">
-                  All form fields are mandatory. Any additional database
-                  columns not represented by this form must default to{' '}
-                  <span className="font-mono font-semibold text-[#16C7D9]">
-                    NULL
-                  </span>
-                  {' '}in the backend insert operation.
-                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 border-t border-[#18334F] bg-[#07182B]/50 px-6 py-4">
@@ -951,6 +1334,288 @@ export default function MDFPage() {
                 </button>
               </div>
             </form>
+            )}
+
+            {addTableTab === 'source' && (
+            <form
+              onSubmit={(event) => void submitSourceConfig(event)}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                {addTableError && (
+                  <div className="mb-5 rounded-lg border border-[#FF647C]/30 bg-[#492431]/70 px-4 py-3 text-[12px] text-[#FF8A9C]">
+                    {addTableError}
+                  </div>
+                )}
+                {addTableSuccess && (
+                  <div className="mb-5 rounded-lg border border-[#18C7A0]/30 bg-[#103E3A]/70 px-4 py-3 text-[12px] text-[#55E0BF]">
+                    {addTableSuccess}
+                  </div>
+                )}
+
+                <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+                  <FormField
+                    label="Source ID"
+                    value={sourceConfigForm.sourceId}
+                    onChange={(value) => updateSourceConfigField('sourceId', value)}
+                    placeholder="e.g. SRC-001"
+                    required
+                  />
+                  <FormField
+                    label="Source Name"
+                    value={sourceConfigForm.sourceName}
+                    onChange={(value) => updateSourceConfigField('sourceName', value)}
+                    placeholder="e.g. Marine Policy System"
+                    required
+                  />
+                  <FormField
+                    label="Source Type"
+                    value={sourceConfigForm.sourceType}
+                    onChange={(value) => updateSourceConfigField('sourceType', value)}
+                    placeholder="e.g. SQL Server, API, File"
+                  />
+                  <FormField
+                    label="Load Type"
+                    value={sourceConfigForm.loadType}
+                    onChange={(value) => updateSourceConfigField('loadType', value)}
+                    placeholder="e.g. Full, Incremental"
+                  />
+                  <FormField
+                    label="Connection KV"
+                    value={sourceConfigForm.connectionKv}
+                    onChange={(value) => updateSourceConfigField('connectionKv', value)}
+                    placeholder="Key Vault reference"
+                  />
+                  <FormField
+                    label="Max Retry Attempts"
+                    value={sourceConfigForm.maxRetryAttemptsSource}
+                    onChange={(value) => updateSourceConfigField('maxRetryAttemptsSource', value)}
+                    placeholder="e.g. 3"
+                    type="number"
+                  />
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                      Is Active
+                      <span className="ml-1 text-[#2DA8FF]">*</span>
+                    </label>
+                    <div className="inline-flex h-10 rounded-lg border border-[#214260] bg-[#07182B] p-1">
+                      {(['Y', 'N'] as IngestionStatus[]).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateSourceConfigField('isActive', value)}
+                          className={`rounded-md px-4 text-[11px] font-semibold transition-colors ${
+                            sourceConfigForm.isActive === value
+                              ? value === 'Y'
+                                ? 'bg-[#18C7A0]/20 text-[#55E0BF]'
+                                : 'bg-[#FF647C]/20 text-[#FF8A9C]'
+                              : 'text-[#8FA7BF] hover:text-[#F4F8FC]'
+                          }`}
+                        >
+                          {value === 'Y' ? 'Yes (Y)' : 'No (N)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <FormField
+                    label="Owned By Team"
+                    value={sourceConfigForm.ownedByTeam}
+                    onChange={(value) => updateSourceConfigField('ownedByTeam', value)}
+                    placeholder="data engineering"
+                  />
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="src-connection-details"
+                      className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]"
+                    >
+                      Connection Details JSON
+                    </label>
+                    <textarea
+                      id="src-connection-details"
+                      value={sourceConfigForm.connectionDetailsJson}
+                      onChange={(event) =>
+                        updateSourceConfigField('connectionDetailsJson', event.target.value)
+                      }
+                      rows={3}
+                      placeholder='{"host":"...","port":1433,"database":"..."}'
+                      className="w-full resize-none rounded-lg border border-[#214260] bg-[#07182B] px-3 py-2.5 text-[12px] text-[#F4F8FC] outline-none transition-colors placeholder:text-[#526B84] focus:border-[#1683FF]"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-lg border border-[#214260] bg-[#07182B]/60 px-4 py-3 text-[11px] leading-5 text-[#8FA7BF]">
+                  <span className="font-semibold text-[#16C7D9]">CREATED_DATE</span> and{' '}
+                  <span className="font-semibold text-[#16C7D9]">MODIFIED_DATE</span>{' '}
+                  are set automatically. <span className="font-semibold text-[#16C7D9]">OWNED_BY_TEAM</span>{' '}
+                  defaults to &ldquo;data engineering&rdquo;.
+                </div>
+
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-[#18334F] bg-[#07182B]/50 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={closeAddTable}
+                  disabled={addingTable}
+                  className="rounded-lg border border-[#214260] px-4 py-2 text-[12px] font-semibold text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingTable}
+                  className="rounded-lg bg-[#1683FF] px-5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#2D91FF] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {addingTable ? 'Submitting…' : 'Submit'}
+                </button>
+              </div>
+            </form>
+            )}
+
+            {addTableTab === 'pipeline' && (
+            <form
+              onSubmit={(event) => void submitPipelineConfig(event)}
+              className="flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                {addTableError && (
+                  <div className="mb-5 rounded-lg border border-[#FF647C]/30 bg-[#492431]/70 px-4 py-3 text-[12px] text-[#FF8A9C]">
+                    {addTableError}
+                  </div>
+                )}
+                {addTableSuccess && (
+                  <div className="mb-5 rounded-lg border border-[#18C7A0]/30 bg-[#103E3A]/70 px-4 py-3 text-[12px] text-[#55E0BF]">
+                    {addTableSuccess}
+                  </div>
+                )}
+
+                <div className="grid gap-x-5 gap-y-4 md:grid-cols-2">
+                  <FormField
+                    label="Pipeline ID"
+                    value={pipelineConfigForm.pipelineId}
+                    onChange={(value) => updatePipelineConfigField('pipelineId', value)}
+                    placeholder="e.g. PL_Full_Load"
+                    required
+                  />
+                  <FormField
+                    label="Pipeline Name"
+                    value={pipelineConfigForm.pipelineName}
+                    onChange={(value) => updatePipelineConfigField('pipelineName', value)}
+                    placeholder="e.g. Full Load Pipeline"
+                    required
+                  />
+                  <FormField
+                    label="Max Concurrent Runs"
+                    value={pipelineConfigForm.maxConcurrentRuns}
+                    onChange={(value) => updatePipelineConfigField('maxConcurrentRuns', value)}
+                    placeholder="e.g. 5"
+                    type="number"
+                  />
+                  <FormField
+                    label="Notification Email"
+                    value={pipelineConfigForm.notificationEmail}
+                    onChange={(value) => updatePipelineConfigField('notificationEmail', value)}
+                    placeholder="e.g. team@example.com"
+                  />
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                      Active Flag
+                      <span className="ml-1 text-[#2DA8FF]">*</span>
+                    </label>
+                    <div className="inline-flex h-10 rounded-lg border border-[#214260] bg-[#07182B] p-1">
+                      {(['Y', 'N'] as IngestionStatus[]).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updatePipelineConfigField('activeFlag', value)}
+                          className={`rounded-md px-4 text-[11px] font-semibold transition-colors ${
+                            pipelineConfigForm.activeFlag === value
+                              ? value === 'Y'
+                                ? 'bg-[#18C7A0]/20 text-[#55E0BF]'
+                                : 'bg-[#FF647C]/20 text-[#FF8A9C]'
+                              : 'text-[#8FA7BF] hover:text-[#F4F8FC]'
+                          }`}
+                        >
+                          {value === 'Y' ? 'Yes (Y)' : 'No (N)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                      Alert On Empty
+                    </label>
+                    <div className="inline-flex h-10 rounded-lg border border-[#214260] bg-[#07182B] p-1">
+                      {(['Y', 'N'] as IngestionStatus[]).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updatePipelineConfigField('alertOnEmpty', value)}
+                          className={`rounded-md px-4 text-[11px] font-semibold transition-colors ${
+                            pipelineConfigForm.alertOnEmpty === value
+                              ? value === 'Y'
+                                ? 'bg-[#18C7A0]/20 text-[#55E0BF]'
+                                : 'bg-[#FF647C]/20 text-[#FF8A9C]'
+                              : 'text-[#8FA7BF] hover:text-[#F4F8FC]'
+                          }`}
+                        >
+                          {value === 'Y' ? 'Yes (Y)' : 'No (N)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-[11px] font-semibold text-[#B8C8D9]">
+                      Iterate Over All Objects
+                    </label>
+                    <div className="inline-flex h-10 rounded-lg border border-[#214260] bg-[#07182B] p-1">
+                      {(['Y', 'N'] as IngestionStatus[]).map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updatePipelineConfigField('iterateOverAllObjects', value)}
+                          className={`rounded-md px-4 text-[11px] font-semibold transition-colors ${
+                            pipelineConfigForm.iterateOverAllObjects === value
+                              ? value === 'Y'
+                                ? 'bg-[#18C7A0]/20 text-[#55E0BF]'
+                                : 'bg-[#FF647C]/20 text-[#FF8A9C]'
+                              : 'text-[#8FA7BF] hover:text-[#F4F8FC]'
+                          }`}
+                        >
+                          {value === 'Y' ? 'Yes (Y)' : 'No (N)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-lg border border-[#214260] bg-[#07182B]/60 px-4 py-3 text-[11px] leading-5 text-[#8FA7BF]">
+                  <span className="font-semibold text-[#16C7D9]">CREATED_DATE</span> is set automatically.{' '}
+                  <span className="font-semibold text-[#16C7D9]">LAST_MODIFIED</span> is set to the current
+                  timestamp on insert (or <span className="font-mono font-semibold text-[#16C7D9]">NULL</span> if not applicable).
+                </div>
+
+              </div>
+
+              <div className="flex items-center justify-end gap-3 border-t border-[#18334F] bg-[#07182B]/50 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={closeAddTable}
+                  disabled={addingTable}
+                  className="rounded-lg border border-[#214260] px-4 py-2 text-[12px] font-semibold text-[#8FA7BF] transition-colors hover:bg-[#102B48] hover:text-[#F4F8FC] disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addingTable}
+                  className="rounded-lg bg-[#1683FF] px-5 py-2 text-[12px] font-semibold text-white transition-colors hover:bg-[#2D91FF] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {addingTable ? 'Submitting…' : 'Submit'}
+                </button>
+              </div>
+            </form>
+            )}
           </div>
         </div>
       )}
