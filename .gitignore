@@ -23,6 +23,9 @@ logs/
 /src/imports/datasonic_platform_spec.md
 /CLAUDE.md
 
+# Generated report data (ontology, job outputs, testing docs)
+/report_data/
+
 # Python build artifacts / local environments
 __pycache__/
 *.py[cod]

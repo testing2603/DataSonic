@@ -1,6 +1,0 @@
-expression 'DirectLake - Marine_Gold_Model' =
-		let
-			Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/1296a62d-7e36-4481-a586-686e8d4b0ccc/dc404cfe-ff08-483a-82cc-04c5d9773a3f", [HierarchicalNavigation=true])
-		in
-			Source
-
