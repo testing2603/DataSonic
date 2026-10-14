@@ -66,16 +66,22 @@ def _skill_rules():
 
 def _reference_material():
     """Inlined into the system prompt so the agent doesn't spend turns reading these files (it's cached)."""
-    builder = PROJECT_ROOT / "server" / "report_agent" / "scripts" / "pbir_build.py"
-    example = REPORT_DATA / "reports" / "marine-claims-overview" / "report.yaml"
+    agent_dir = PROJECT_ROOT / "server" / "report_agent"
+    builder = agent_dir / "scripts" / "pbir_build.py"
+    example = agent_dir / "example_report.yaml"
+    if not example.exists():
+        example = REPORT_DATA / "reports" / "marine-claims-overview" / "report.yaml"
     ontology = REPORT_DATA / "ontology" / "marine.yaml"
-    return "\n\n".join([
+    sections = [
         "# Reference material (already loaded: don't Read these files)",
         "## Marine report rules\n\n" + _skill_rules(),
         "## report.yaml field reference\n\n" + ast.get_docstring(ast.parse(builder.read_text(encoding="utf-8"))),
-        f"## Worked example: {example.relative_to(PROJECT_ROOT).as_posix()}\n\n```yaml\n{example.read_text(encoding='utf-8')}\n```",
-        f"## Ontology: {ontology.relative_to(PROJECT_ROOT).as_posix()}\n\n```yaml\n{ontology.read_text(encoding='utf-8')}\n```",
-    ])
+    ]
+    if example.exists():
+        sections.append(f"## Worked example: {example.relative_to(PROJECT_ROOT).as_posix()}\n\n```yaml\n{example.read_text(encoding='utf-8')}\n```")
+    if ontology.exists():
+        sections.append(f"## Ontology: {ontology.relative_to(PROJECT_ROOT).as_posix()}\n\n```yaml\n{ontology.read_text(encoding='utf-8')}\n```")
+    return "\n\n".join(sections)
 
 
 REFERENCE = _reference_material()
