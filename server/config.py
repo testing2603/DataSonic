@@ -76,6 +76,11 @@ FABRIC_DECISION_NOTEBOOK_ID = _str('FABRIC_DECISION_NOTEBOOK_ID')
 # Seconds after the latest click before a run starts (0 = immediately).
 DECISION_SYNC_DELAY_SECONDS = _int('DECISION_SYNC_DELAY_SECONDS', 0)
  
+# ---------- Component: CDR Schema Dictionary (Schema Drift page) ----------
+CDR_DICTIONARY_DATABASE = _str('CDR_DICTIONARY_DATABASE') or 'CDR_Airtable_Schema'
+CDR_DICTIONARY_TABLE = _str('CDR_DICTIONARY_TABLE') or 'dbo.cdr_schema_dictionary'
+CDR_DICTIONARY_MAX_ROWS = _int('CDR_DICTIONARY_MAX_ROWS', 1000)
+
 # ---------- Component: MDM (Stewardship Review > MDM) ----------
 # Lakehouse on the same SQL endpoint holding the MDM review table, and the
 # table as <schema>.<table> (the lakehouse's mdm folder is the schema).

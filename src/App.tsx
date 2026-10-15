@@ -146,12 +146,12 @@ export default function App() {
           onBellClose={() => setBellOpen(false)}
         />
         <main className="flex-1 overflow-auto relative" style={{ zIndex: 1 }}>
-          {page === 'home' && <LandingPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} />}
-          {page === 'ingestion' && <IngestionPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} />}
-          {page === 'mdf' && <MDFPage />}
-          {page === 'stewardship' && <StewardshipPage tab={stewardTab} onTabChange={setStewardTab} onNotify={addNotification} />}
-          {page === 'data-engineering' && <DataEngineeringPage />}
-          {page === 'data-reliability' && <DataReliabilityPage />}
+          <div style={{ display: page === 'home' ? 'contents' : 'none' }}><LandingPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} /></div>
+          <div style={{ display: page === 'ingestion' ? 'contents' : 'none' }}><IngestionPage onNavigate={(p) => setPage(p as Page)} onNotify={addNotification} /></div>
+          <div style={{ display: page === 'mdf' ? 'contents' : 'none' }}><MDFPage /></div>
+          <div style={{ display: page === 'stewardship' ? 'contents' : 'none' }}><StewardshipPage tab={stewardTab} onTabChange={setStewardTab} onNotify={addNotification} /></div>
+          <div style={{ display: page === 'data-engineering' ? 'contents' : 'none' }}><DataEngineeringPage /></div>
+          <div style={{ display: page === 'data-reliability' ? 'contents' : 'none' }}><DataReliabilityPage /></div>
           <div style={{ display: page === 'reporting' ? 'contents' : 'none' }}><ReportingPage /></div>
           <div style={{ display: page === 'ai-chat' ? 'contents' : 'none' }}><AIChatPage /></div>
         </main>
@@ -177,6 +177,16 @@ function Sidebar({ page, stewardTab, setPage, setStewardTab, collapsed, onToggle
   collapsed: boolean
   onToggle: () => void
 }) {
+  const [popupOpen, setPopupOpen] = useState(false)
+
+  useEffect(() => {
+    const check = () => setPopupOpen(!!document.querySelector('[role="dialog"], .fixed.inset-0'))
+    check()
+    const obs = new MutationObserver(check)
+    obs.observe(document.body, { childList: true, subtree: true })
+    return () => obs.disconnect()
+  }, [])
+
   return (
     <aside
       className="flex-shrink-0 flex flex-col transition-all duration-300 ease-in-out relative"
@@ -187,10 +197,11 @@ function Sidebar({ page, stewardTab, setPage, setStewardTab, collapsed, onToggle
       <SidebarBottom collapsed={collapsed} />
       <button
         onClick={onToggle}
+        disabled={popupOpen}
         title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        className="absolute -right-3 top-[60px] w-6 h-6 rounded-full flex items-center justify-center transition-all z-10 shadow-md"
+        className="absolute -right-3 top-[60px] w-6 h-6 rounded-full flex items-center justify-center transition-all z-10 shadow-md disabled:opacity-30 disabled:pointer-events-none"
         style={{ background: '#0D3970', border: '1px solid #214260', color: '#8FA7BF' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = '#14385C'; (e.currentTarget as HTMLButtonElement).style.color = '#F4F8FC' }}
+        onMouseEnter={e => { if (!popupOpen) { (e.currentTarget as HTMLButtonElement).style.background = '#14385C'; (e.currentTarget as HTMLButtonElement).style.color = '#F4F8FC' } }}
         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = '#0D3970'; (e.currentTarget as HTMLButtonElement).style.color = '#8FA7BF' }}
       >
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"

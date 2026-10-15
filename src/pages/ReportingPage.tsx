@@ -180,10 +180,12 @@ export default function ReportingPage() {
             Generate Power BI reports from natural language — pick a line of business and describe what you need.
           </p>
         </div>
-        <span className="text-[10px] px-2 py-1 rounded-full flex items-center gap-1.5" style={{ background: '#102B48', color: connected ? '#18C7A0' : '#FF647C' }}>
-          <span className="w-1.5 h-1.5 rounded-full" style={{ background: connected ? '#18C7A0' : '#FF647C' }} />
-          {connected ? 'Agent connected' : 'Connecting…'}
-        </span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: connected ? '#0A2E1A' : '#2D1520', border: `1px solid ${connected ? '#1A5C30' : '#5C2030'}` }}>
+          <div className="w-2 h-2 rounded-full" style={{ background: connected ? '#34D399' : '#F87171' }} />
+          <span className="text-[11px] font-medium" style={{ color: connected ? '#6EE7B7' : '#FCA5A5' }}>
+            {connected ? 'Agent Connected' : 'Connecting…'}
+          </span>
+        </div>
       </div>
 
       {globalError && (

@@ -40,6 +40,15 @@ def _error(route: str, e: Exception):
     return jsonify({'error': str(e)}), 500
 
 
+def _bracketed_table(table_name: str) -> str:
+    parts = table_name.split('.')
+    if not 1 <= len(parts) <= 2:
+        raise ValueError(f'table must look like schema.table, not {table_name!r}')
+    if len(parts) == 1:
+        parts.insert(0, 'dbo')
+    return '.'.join(f'[{p}]' for p in parts)
+
+
 @bp.route('/api/approval-logs')
 def approval_logs():
     """Pending reviews from drift_ui_review + decided entries from schema_registry.
@@ -223,6 +232,24 @@ def drift_sync():
         return jsonify(sync.summary())
     except Exception as e:
         return _error('GET /api/drift-sync', e)
+
+
+@bp.route('/api/cdr-schema-dictionary')
+def cdr_schema_dictionary():
+    try:
+        columns, rows = fabric_sql.run_query_with_columns(
+            f'SELECT TOP ({int(config.CDR_DICTIONARY_MAX_ROWS)}) * '
+            f'FROM {_bracketed_table(config.CDR_DICTIONARY_TABLE)}',
+            database=config.CDR_DICTIONARY_DATABASE,
+        )
+        return jsonify({
+            'source': f'{config.CDR_DICTIONARY_DATABASE}.{config.CDR_DICTIONARY_TABLE}',
+            'columns': columns,
+            'rows': rows,
+            'truncated': len(rows) >= config.CDR_DICTIONARY_MAX_ROWS,
+        })
+    except Exception as e:
+        return _error('GET /api/cdr-schema-dictionary', e)
 
 
 def on_startup():

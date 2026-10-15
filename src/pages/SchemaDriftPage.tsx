@@ -269,7 +269,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
   const [decisionCounts, setDecisionCounts] = useState<DecisionCounts>({ autoApproved: 0, manuallyApproved: 0, rejected: 0, total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
- 
+
   const [selected, setSelected] = useState<DriftLog | null>(null)
   const [page, setPage] = useState(1)
   const [justification, setJustification] = useState('')
@@ -280,6 +280,7 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
   const [sync, setSync] = useState<SyncSummary | null>(null)
   const [saving, setSaving] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Status | 'All'>('All')
+  const [showDictionary, setShowDictionary] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
  
   function goToPage(p: number | ((prev: number) => number)) {
@@ -466,6 +467,17 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
           <h1 className="text-xl font-bold" style={{ color: '#F4F8FC' }}>Schema Drift – Stewardship Review</h1>
           <p className="text-[12px] mt-0.5" style={{ color: '#8FA7BF' }}>Review and take action on individual schema changes detected in incoming data.</p>
         </div>
+        <button
+          onClick={() => setShowDictionary(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-colors flex-shrink-0"
+          style={{ background: '#103B70', border: '1px solid #214260', color: '#2DA8FF' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="2" y="2" width="12" height="12" rx="2" />
+            <path d="M2 6h12M6 6v8" />
+          </svg>
+          CDR Schema Dictionary
+        </button>
       </div>
  
       {error && (
@@ -605,6 +617,8 @@ export default function SchemaDriftPage({ onNotify }: { onNotify: (n: AppNotific
       </div>
  
  
+      {showDictionary && <CdrDictionaryPopup onClose={() => setShowDictionary(false)} />}
+
       {/* Detail modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-end" onClick={() => setSelected(null)}>
@@ -845,6 +859,136 @@ function SyncBanner({ sync }: { sync: SyncSummary }) {
   return null
 }
  
+const CDR_PAGE_SIZE = 15
+
+type CdrRow = Record<string, unknown>
+
+function formatCdrCell(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '—'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function CdrDictionaryPopup({ onClose }: { onClose: () => void }) {
+  const [rows, setRows] = useState<CdrRow[]>([])
+  const [columns, setColumns] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/cdr-schema-dictionary')
+        const body = await res.json().catch(() => null)
+        if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`)
+        if (!cancelled) {
+          setColumns(body.columns ?? [])
+          setRows(body.rows ?? [])
+        }
+      } catch (err) {
+        if (!cancelled) setError(`Could not load CDR schema dictionary: ${(err as Error).message}`)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / CDR_PAGE_SIZE))
+  const current = Math.min(page, totalPages)
+  const pageRows = rows.slice((current - 1) * CDR_PAGE_SIZE, current * CDR_PAGE_SIZE)
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="CDR Schema Dictionary"
+        className="rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col"
+        style={{ background: '#0A1B31', border: '1px solid #214260' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid #18334F' }}>
+          <h2 className="text-[15px] font-bold" style={{ color: '#F4F8FC' }}>CDR Schema Dictionary</h2>
+          <button onClick={onClose} aria-label="Close" style={{ color: '#8FA7BF' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 3l10 10M13 3L3 13" strokeLinecap="round" /></svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          <table className="w-full">
+            <thead>
+              <tr style={{ borderBottom: '1px solid #18334F', position: 'sticky', top: 0, background: '#0D2440', zIndex: 1 }}>
+                <th className="text-left text-[11px] font-semibold px-5 py-3 whitespace-nowrap" style={{ color: '#8FA7BF' }}>#</th>
+                {columns.map((c) => (
+                  <th key={c} className="text-left text-[11px] font-semibold px-5 py-3 whitespace-nowrap" style={{ color: '#8FA7BF' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#8FA7BF' }}>
+                    Loading CDR schema dictionary from Fabric…
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#FF647C' }}>
+                    {error}
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-5 py-8 text-center text-[12px]" style={{ color: '#8FA7BF' }}>
+                    No records found.
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #18334F' }}>
+                    <td className="px-5 py-3 text-[12px]" style={{ color: '#5a7a9a' }}>{(current - 1) * CDR_PAGE_SIZE + i + 1}</td>
+                    {columns.map((c) => (
+                      <td key={c} className="px-5 py-3 text-[12px]" style={{ color: '#E6EEF7' }}>
+                        {formatCdrCell(row[c])}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ borderTop: '1px solid #18334F' }}>
+          <span className="text-[12px]" style={{ color: '#8FA7BF' }}>
+            {rows.length === 0
+              ? 'No records'
+              : `Showing ${(current - 1) * CDR_PAGE_SIZE + 1}–${Math.min(current * CDR_PAGE_SIZE, rows.length)} of ${rows.length} record${rows.length === 1 ? '' : 's'}`}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(Math.max(current - 1, 1))}
+              disabled={current === 1}
+              className="w-7 h-7 flex items-center justify-center rounded text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid #214260', color: '#8FA7BF' }}
+            >‹</button>
+            <span className="px-2 text-[12px]" style={{ color: '#8FA7BF' }}>{current} / {totalPages}</span>
+            <button
+              onClick={() => setPage(Math.min(current + 1, totalPages))}
+              disabled={current === totalPages}
+              className="w-7 h-7 flex items-center justify-center rounded text-[12px] disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ border: '1px solid #214260', color: '#8FA7BF' }}
+            >›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StatCard({ icon, value, label, color, bg }: { icon: React.ReactNode; value: number; label: string; color: string; ring: string; bg: string }) {
   const iconStyle = bg === 'bg-amber-50' ? { background: '#493715', color: '#F5A623' }
     : bg === 'bg-emerald-50' ? { background: '#103E3A', color: '#18C7A0' }
