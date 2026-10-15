@@ -1,6 +1,6 @@
 """DataSonic report-agent backend (POC), now integrated into the main project.
 
-    python -m uvicorn server.report_agent.app:app --port 8000
+    python -m uvicorn server.report_agent.app:app --port 8001
 
 WebSocket /api/report/ws, JSON messages:
   client -> {"type": "generate", "lob": "marine", "prompt": "..."}

@@ -41,12 +41,12 @@ react(),
       },
       proxy: {
         '/api/report/ws': {
-          target: `http://localhost:${process.env.REPORT_AGENT_PORT || 8000}`,
+          target: `http://localhost:${process.env.REPORT_AGENT_PORT || 8001}`,
           changeOrigin: true,
           ws: true,
         },
         '/api/report': {
-          target: `http://localhost:${process.env.REPORT_AGENT_PORT || 8000}`,
+          target: `http://localhost:${process.env.REPORT_AGENT_PORT || 8001}`,
           changeOrigin: true,
         },
         '/api': {

@@ -235,6 +235,8 @@ export default function MDFPage() {
   const [addTableSuccess, setAddTableSuccess] = useState('')
   const [availableSources, setAvailableSources] = useState<{ source_id: string; source_name: string }[]>([])
   const [sourcesLoading, setSourcesLoading] = useState(false)
+  const [availablePipelines, setAvailablePipelines] = useState<{ pipeline_id: string; pipeline_name: string }[]>([])
+  const [pipelinesLoading, setPipelinesLoading] = useState(false)
   const [showUpdateIngestion, setShowUpdateIngestion] = useState(false)
   const [objects, setObjects] = useState<IngestionObject[]>([])
   const [loading, setLoading] = useState(false)
@@ -246,11 +248,32 @@ export default function MDFPage() {
     (object) => object.status !== object.initialStatus,
   )
 
+  async function loadPipelines() {
+    setPipelinesLoading(true)
+    try {
+      const response = await fetch('/api/mdf/pipeline-configs')
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const body = await response.json()
+      const records = body.records ?? []
+      setAvailablePipelines(
+        records.map((r: Record<string, unknown>) => ({
+          pipeline_id: String(r.PIPELINE_ID ?? r.pipeline_id ?? '').trim(),
+          pipeline_name: String(r.PIPELINE_NAME ?? r.pipeline_name ?? '').trim(),
+        })).filter((p: { pipeline_id: string }) => p.pipeline_id),
+      )
+    } catch {
+      setAvailablePipelines([])
+    } finally {
+      setPipelinesLoading(false)
+    }
+  }
+
   function openPipelineDialog() {
-    setPipelineForm({ pipelineId: 'PL_Full_Load', pipelineRetry: '3' })
+    setPipelineForm({ pipelineId: '', pipelineRetry: '3' })
     setPipelineExecutionMessage('')
     setPipelineExecutionError('')
     setShowPipelineDialog(true)
+    void loadPipelines()
   }
 
   async function executePipeline() {
@@ -351,6 +374,7 @@ export default function MDFPage() {
     setAddTableSuccess('')
     setShowAddTable(true)
     void loadSources()
+    void loadPipelines()
   }
 
   function closeAddTable() {
@@ -866,12 +890,19 @@ export default function MDFPage() {
                   id="pl-pipeline-id"
                   value={pipelineForm.pipelineId}
                   onChange={(e) => setPipelineForm((f) => ({ ...f, pipelineId: e.target.value }))}
-                  disabled={executingPipeline}
+                  disabled={executingPipeline || pipelinesLoading}
+                  required
                   className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none disabled:opacity-50"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238FA7BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                 >
-                  <option value="PL_Full_Load">PL_Full_Load</option>
-                  <option value="PL_Incremental_Load">PL_Incremental_Load</option>
+                  <option value="" disabled className="text-[#526B84]">
+                    {pipelinesLoading ? 'Loading pipelines…' : 'Select a pipeline'}
+                  </option>
+                  {availablePipelines.map((p) => (
+                    <option key={p.pipeline_id} value={p.pipeline_id}>
+                      {p.pipeline_id}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1216,14 +1247,18 @@ export default function MDFPage() {
                         updateAddTableField('pipelineId', event.target.value)
                       }
                       required
-                      className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none"
+                      disabled={pipelinesLoading}
+                      className="h-10 w-full rounded-lg border border-[#214260] bg-[#07182B] px-3 text-[12px] text-[#F4F8FC] outline-none transition-colors focus:border-[#1683FF] appearance-none disabled:opacity-50"
                       style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238FA7BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
                     >
                       <option value="" disabled className="text-[#526B84]">
-                        Select pipeline type
+                        {pipelinesLoading ? 'Loading pipelines…' : 'Select a pipeline'}
                       </option>
-                      <option value="PL_Full_Load">PL_Full_Load</option>
-                      <option value="PL_Incremental_Load">PL_Incremental_Load</option>
+                      {availablePipelines.map((p) => (
+                        <option key={p.pipeline_id} value={p.pipeline_id}>
+                          {p.pipeline_id}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <FormField

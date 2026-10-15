@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "python server/app.py",
-    "dev:report": "python -m uvicorn server.report_agent.app:app --port 8000",
+    "dev:report": "python -m uvicorn server.report_agent.app:app --port 8001",
     "dev:all": "concurrently -n web,api,report -c blue,green,magenta \"pnpm dev\" \"pnpm dev:api\" \"pnpm dev:report\"",
     "build": "vite build",
     "preview": "vite preview",
