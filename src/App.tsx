@@ -231,7 +231,7 @@ function SidebarLogo({ collapsed }: { collapsed: boolean }) {
               </span>
               <span className="text-[8px] align-super" style={{ color: 'rgba(244,248,252,0.4)' }}>®</span>
             </div>
-            <div className="text-[8px] font-mono uppercase tracking-widest leading-tight whitespace-nowrap mt-0.5" style={{ color: '#16C7D9', opacity: 0.7 }}>
+            <div className="text-[8px] font-mono uppercase tracking-widest leading-tight mt-0.5" style={{ color: '#16C7D9', opacity: 0.7 }}>
               Adrosonic Intelligent Data Platform
             </div>
           </div>

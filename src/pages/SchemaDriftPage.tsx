@@ -204,7 +204,7 @@ function toDriftLog(row: ApprovalLogRow): DriftLog {
     schemaVersion: null,
     pipelineId: row.PIPELINE_ID,
     cdrConcept: row.CDR_CONCEPT,
-    confidence: row.LLM_SCORE != null ? Number(row.LLM_SCORE) : null,
+    confidence: row.LLM_SCORE != null ? (Number(row.LLM_SCORE) > 1 ? Number(row.LLM_SCORE) / 100 : Number(row.LLM_SCORE)) : null,
     detected: formatDetected(row.CREATED_TIME),
   }
 }
